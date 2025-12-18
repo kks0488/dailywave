@@ -1,0 +1,227 @@
+/* Command Center (No Scroll, Fixed Layout) */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@400;600;700&display=swap');
+
+html, body, #root {
+    width: 100vw; height: 100vh; overflow: hidden;
+    margin: 0; padding: 0;
+    font-family: 'Inter', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.hq-container {
+    width: 100%; height: 100%;
+    display: grid;
+    grid-template-columns: 320px 1fr; /* Fixed Sidebar */
+    background: #020617;
+}
+
+/* --- Sidebar --- */
+.hq-sidebar {
+    background: #0f172a;
+    border-right: 1px solid #1e293b;
+    display: flex; flex-direction: column;
+    padding: 24px;
+}
+
+.sidebar-header {
+    margin-bottom: 40px;
+}
+.hq-logo {
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 20px; font-weight: 700;
+    color: white; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 8px;
+}
+.hq-logo::before {
+    content: ''; display: block; width: 12px; height: 12px; background: #3b82f6;
+}
+.hq-date {
+    font-size: 12px; color: #64748b; font-weight: 600; margin-top: 4px;
+}
+
+.protocol-section {
+    margin-bottom: 32px;
+}
+.protocol-section h3 {
+    font-size: 11px; font-weight: 800; color: #475569; margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+
+.protocol-list {
+    display: flex; flex-direction: column; gap: 8px;
+}
+
+.protocol-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px;
+    background: #1e293b;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+.protocol-item:hover { background: #334155; }
+.protocol-item.done { opacity: 0.5; background: #0f172a; border-color: #334155; }
+
+.checkbox {
+    width: 18px; height: 18px;
+    border: 2px solid #475569; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+}
+.protocol-item.done .checkbox {
+    background: #22c55e; border-color: #22c55e; color: black;
+}
+
+.proto-content { display: flex; flex-direction: column; }
+.time { font-size: 10px; color: #94a3b8; font-weight: 700; }
+.task { font-size: 13px; font-weight: 600; }
+
+/* --- Main Area --- */
+.hq-main {
+    display: flex; flex-direction: column;
+    padding: 32px;
+    background: radial-gradient(circle at top right, #1e293b 0%, #020617 40%);
+}
+
+.main-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #1e293b;
+}
+.main-header h2 {
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 18px; font-weight: 700; letter-spacing: 1px; color: #94a3b8;
+}
+
+.header-actions { display: flex; gap: 12px; }
+.icon-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: #1e293b; color: #94a3b8;
+    border: none; display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+}
+.icon-btn:hover { background: #334155; color: white; }
+
+
+/* Pipeline Grid */
+.pipeline-grid {
+    flex: 1;
+    display: flex; flex-direction: column;
+    gap: 20px;
+}
+
+.pipeline-card {
+    flex: 1; /* Distribute height equally */
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 24px;
+    display: flex; flex-direction: column;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Theme Borders */
+.theme-red { border-left: 4px solid #ef4444; }
+.theme-blue { border-left: 4px solid #3b82f6; }
+.theme-emerald { border-left: 4px solid #10b981; }
+
+.lane-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 30px;
+}
+.lane-title {
+    font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 12px;
+}
+.theme-red .lane-title { color: #fca5a5; }
+.theme-blue .lane-title { color: #93c5fd; }
+.theme-emerald .lane-title { color: #6ee7b7; }
+
+.lane-status {
+    font-size: 10px; font-weight: 800; text-transform: uppercase;
+    padding: 4px 8px; background: #1e293b; border-radius: 4px; color: #64748b;
+}
+
+/* Track Visualization */
+.lane-track {
+    position: relative;
+    flex: 1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; /* Padding for start/end */
+}
+
+.track-line {
+    position: absolute;
+    left: 40px; right: 40px; top: 24px;
+    height: 4px;
+    background: #334155;
+    z-index: 0;
+    border-radius: 2px;
+}
+
+.track-node {
+    position: relative;
+    z-index: 10;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px;
+}
+
+.node-circle {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: #1e293b;
+    border: 4px solid #0f172a; /* gap effect */
+    display: flex; align-items: center; justify-content: center;
+    color: #64748b;
+    font-weight: 700;
+    transition: all 0.3s;
+}
+
+/* Node States */
+.status-done .node-circle {
+    background: #334155; color: #94a3b8;
+}
+.theme-red .status-done .node-circle { background: #450a0a; color: #f87171; }
+.theme-blue .status-done .node-circle { background: #172554; color: #60a5fa; }
+.theme-emerald .status-done .node-circle { background: #064e3b; color: #34d399; }
+
+.status-active .node-circle {
+    background: white; border-color: white; transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(255,255,255,0.3);
+}
+.theme-red .status-active .node-circle { color: #dc2626; }
+.theme-blue .status-active .node-circle { color: #2563eb; }
+.theme-emerald .status-active .node-circle { color: #059669; }
+
+.status-locked .node-circle {
+    background: #020617; border-color: #1e293b; opacity: 0.5;
+}
+
+/* Pulse Animation for Active Node */
+.pulse-core {
+    width: 12px; height: 12px;
+    background: currentColor;
+    border-radius: 50%;
+    animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ping {
+    75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+.node-label {
+    font-size: 13px; font-weight: 600; color: #94a3b8;
+    position: relative;
+    white-space: nowrap;
+}
+.status-active .node-label { color: white; font-weight: 700; }
+
+.now-badge {
+    position: absolute;
+    top: -20px; left: 50%; transform: translateX(-50%);
+    background: #facc15; color: black;
+    font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px;
+}
