@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCommandStore } from '../store/useCommandStore';
 import {
     Check, Plus, X, Settings, ChevronRight,
     MoreHorizontal, RotateCcw, Box, Briefcase,
     Zap, Link, Archive, Maximize2, Minimize2, Trash2, Palette,
-    Download, Upload, Save, Calendar, Copy
+    Download, Upload, Save, Calendar, Copy, Sun, Moon
 } from 'lucide-react';
 import './AppleCommandCenter.css';
 
@@ -17,6 +18,25 @@ import './AppleCommandCenter.css';
 // };
 
 const AppleCommandCenter = () => {
+  const { t, i18n } = useTranslation();
+
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) return savedTheme;
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
   // STORE
   const { routines, pipelines, toggleRoutine, addRoutine, deleteRoutine, 
           updateStepStatus, addStep, deleteStep, renameStep, updateStepDescription, addPipeline, deletePipeline, insertStep, reorderSteps, undo, redo, renamePipeline, reorderPipelines, hydrate } = useCommandStore();
@@ -75,9 +95,9 @@ const AppleCommandCenter = () => {
   const requestDelete = (type, id, parentId = null, message = '') => {
       let msg = message;
       if (!msg) {
-          if (type === 'pipeline') msg = '이 워크플로우를 영구적으로 삭제하시겠습니까?';
-          if (type === 'step') msg = '이 단계를 삭제하시겠습니까?';
-          if (type === 'routine') msg = '이 루틴을 삭제하시겠습니까?';
+          if (type === 'pipeline') msg = t('workflow.deleteConfirm');
+          if (type === 'step') msg = t('step.deleteConfirm');
+          if (type === 'routine') msg = t('routine.deleteConfirm');
       }
       setDeleteConfirm({ type, id, parentId, message: msg });
   };
@@ -149,24 +169,24 @@ const AppleCommandCenter = () => {
               const parsed = JSON.parse(event.target.result);
               if (parsed.pipelines && parsed.routines) {
                   hydrate(parsed);
-                  alert('데이터가 성공적으로 복원되었습니다.');
+                  alert(t('settings.restoreSuccess'));
                   setIsSettingsOpen(false);
               } else {
-                  alert('올바르지 않은 백업 파일입니다.');
+                  alert(t('settings.restoreError'));
               }
           } catch (err) {
               console.error(err);
-              alert('파일을 읽는 중 오류가 발생했습니다.');
+              alert(t('settings.restoreError'));
           }
       };
       reader.readAsText(file);
   };
 
   const handleResetData = () => {
-      if (confirm('정말로 모든 데이터를 초기화하시겠습니까? 초기화 후 페이지를 새로고침하면 기본 워크플로우가 자동으로 복원됩니다.')) {
+      if (confirm(t('settings.resetConfirm'))) {
         hydrate({ pipelines: [], routines: [] });
         setIsSettingsOpen(false);
-        alert('데이터가 초기화되었습니다. 새로고침 시 기본 설정이 복구됩니다.');
+        alert(t('settings.dataReset'));
       }
   };
 
@@ -277,7 +297,7 @@ const AppleCommandCenter = () => {
   };
 
   const handleCreatePipeline = () => {
-      if(!newPipeTitle.trim()) return alert('제목을 입력해주세요.');
+      if(!newPipeTitle.trim()) return alert(t('workflow.title'));
       
       // Smart Fallback: If user didn't pick a color, auto-assign the next one
       const finalColor = newPipeColor || ALL_COLORS[pipelines.length % ALL_COLORS.length];
@@ -507,53 +527,56 @@ const AppleCommandCenter = () => {
                 {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', weekday: 'short' }).replace(/\//g, '.')}            </div>
          </div>
 
-         {/* Morning Routines */}
-         <div className="routine-block">
-            <div className="block-header">
-              <h3>오전 루틴</h3>
-              <button className="add-mini-btn" onClick={() => setAddingRoutineType('morning')}><Plus size={12}/></button>
-            </div>
-            {renderRoutineList('morning')}
-            {addingRoutineType === 'morning' && (
-                <div className="add-routine-form">
-                    <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
-                    <input type="text" placeholder="할 일 입력..." value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
-                    <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
-                </div>
-            )}
-         </div>
+          {/* Morning Routines */}
+          <div className="routine-block">
+             <div className="block-header">
+               <h3>{t('sidebar.morningRoutine')}</h3>
+               <button className="add-mini-btn" onClick={() => setAddingRoutineType('morning')}><Plus size={12}/></button>
+             </div>
+             {renderRoutineList('morning')}
+             {addingRoutineType === 'morning' && (
+                 <div className="add-routine-form">
+                     <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
+                     <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
+                     <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
+                 </div>
+             )}
+          </div>
 
-         {/* Afternoon Routines */}
-         <div className="routine-block">
-            <div className="block-header">
-              <h3>오후 루틴</h3>
-              <button className="add-mini-btn" onClick={() => setAddingRoutineType('afternoon')}><Plus size={12}/></button>
-            </div>
-            {renderRoutineList('afternoon')}
-            {addingRoutineType === 'afternoon' && (
-                <div className="add-routine-form">
-                    <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
-                    <input type="text" placeholder="할 일 입력..." value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
-                    <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
-                </div>
-            )}
-         </div>
+          {/* Afternoon Routines */}
+          <div className="routine-block">
+             <div className="block-header">
+               <h3>{t('sidebar.afternoonRoutine')}</h3>
+               <button className="add-mini-btn" onClick={() => setAddingRoutineType('afternoon')}><Plus size={12}/></button>
+             </div>
+             {renderRoutineList('afternoon')}
+             {addingRoutineType === 'afternoon' && (
+                 <div className="add-routine-form">
+                     <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
+                     <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
+                     <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
+                 </div>
+             )}
+          </div>
        </aside>
 
-       {/* 2. MAIN CONTENT */}
-       <main className="acc-main">
-         <header className="acc-header">
-            <div className="header-left">
-              <h1>{focusedPipelineId ? '집중 모드' : 'DailyWave'}</h1>
-            </div>
+        {/* 2. MAIN CONTENT */}
+        <main className="acc-main">
+          <header className="acc-header">
+             <div className="header-left">
+               <h1>{focusedPipelineId ? t('header.focusMode') : t('app.name')}</h1>
+             </div>
 
-            <div className="acc-actions">
-               <button className="create-pipe-btn" onClick={openPipeModal}>
-                   <Plus size={14}/> 새 워크플로우
-               </button>
-               <button className="acc-icon-btn" onClick={() => setIsSettingsOpen(true)}><Settings size={18}/></button>
-            </div>
-         </header>
+             <div className="acc-actions">
+                <button className="create-pipe-btn" onClick={openPipeModal}>
+                    <Plus size={14}/> {t('header.newWorkflow')}
+                </button>
+                <button className="acc-icon-btn" onClick={toggleTheme} title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
+                    {theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
+                </button>
+                <button className="acc-icon-btn" onClick={() => setIsSettingsOpen(true)}><Settings size={18}/></button>
+             </div>
+          </header>
 
           <div className="acc-grid">
              {displayPipelines.map((p, index) => {
@@ -569,21 +592,21 @@ const AppleCommandCenter = () => {
                   onDrop={(e) => handlePipeDrop(e)}
                >
                   <div className="card-header">
-                    <div 
-                         className={`icon-wrapper ${!isHex ? p.color : ''}`} 
-                         style={isHex ? { backgroundColor: p.color } : {}}
-                     >
-                        {getIcon(p.iconType, p.color)}
-                     </div>
-                     <div className="header-text" onDoubleClick={() => startPipelineRename(p.id, p.title)} title="더블클릭하여 이름 변경">
-                        <h2>{p.title}</h2>
-                        <p>{p.subtitle}</p>
-                     </div>
+                     <div 
+                          className={`icon-wrapper ${!isHex ? p.color : ''}`} 
+                          style={isHex ? { backgroundColor: p.color } : {}}
+                      >
+                         {getIcon(p.iconType, p.color)}
+                      </div>
+                      <div className="header-text" onDoubleClick={() => startPipelineRename(p.id, p.title)} title={t('workflow.rename')}>
+                         <h2>{p.title}</h2>
+                         <p>{p.subtitle}</p>
+                      </div>
 
-                    <div className="card-actions">
-                        <button className="icon-action-btn" onClick={() => handleToggleFocus(p.id)} title={isFocused ? "축소" : "확대 (집중 모드)"}>
-                            {isFocused ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
-                        </button>
+                     <div className="card-actions">
+                         <button className="icon-action-btn" onClick={() => handleToggleFocus(p.id)} title={isFocused ? "Minimize" : t('header.focusMode')}>
+                             {isFocused ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
+                         </button>
                        <button className="icon-action-btn" onClick={() => handleHeaderAddStep(p.id)}>
                              <Plus size={16} />
                        </button>
@@ -632,282 +655,296 @@ const AppleCommandCenter = () => {
          </div>
        </main>
 
-       {/* CONTEXT MENU */}
-       {contextMenu && contextMenu.visible && (
-           <div 
-             className="context-menu" 
-             style={{ top: contextMenu.y, left: contextMenu.x }}
-             onClick={(e) => e.stopPropagation()}
-           >
-               <button onClick={handleContextAdd}>
-                   <Plus size={14}/> 이 위치에 단계 추가 ({Number.isInteger(contextMenu.index) ? contextMenu.index + 1 : '?'}번)
-               </button>
-           </div>
-       )}
-
-       {/* SETTINGS MODAL */}
-       {isSettingsOpen && (
-        <div className="modal-overlay" onClick={() => setIsSettingsOpen(false)}>
-            <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
-                <div className="modal-header">
-                    <h3>설정 및 데이터</h3>
-                    <button className="close-btn" onClick={() => setIsSettingsOpen(false)}><X size={18}/></button>
-                </div>
-                
-                <div className="memo-section">
-                    <label>데이터 관리</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
-                        <button 
-                            className="status-option pending" 
-                            style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f' }}
-                            onClick={handleExportData}
-                        >
-                            <Download size={16}/> 데이터 백업 (다운로드)
-                        </button>
-                        
-                        <label 
-                            className="status-option pending" 
-                            style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f', cursor: 'pointer', margin: 0 }}
-                        >
-                            <Upload size={16}/> 
-                            데이터 복원 (파일 선택)
-                            <input 
-                                type="file" 
-                                accept=".json" 
-                                style={{ display: 'none' }} 
-                                onChange={handleImportData}
-                            />
-                        </label>
-                    </div>
-                </div>
-
-                <div className="memo-section">
-                    <label>캘린더 연동 (애플/구글)</label>
-                    <p style={{ fontSize: '11px', color: '#86868b', marginBottom: '8px', lineHeight: '1.4' }}>
-                        이 작업 워크플로우를 캘린더 앱에 동기화할 수 있습니다.<br/>
-                        아래 URL을 복사하여 캘린더의 [새 구독 캘린더]에 등록하세요.
-                    </p>
-                    <button 
-                        className="status-option pending" 
-                        style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f' }}
-                        onClick={() => {
-                            const calUrl = `http://${window.location.hostname}:8020/api/calendar/feed`;
-                            navigator.clipboard.writeText(calUrl);
-                            alert('캘린더 구독 URL이 복사되었습니다!\n\n1. 애플 캘린더: [파일] -> [새로운 캘린더 구독]\n2. 구글 캘린더: [다른 캘린더 +] -> [URL로 추가]\n위 주소를 붙여넣어 연동하세요.');
-                        }}
-                    >
-                        <Copy size={16}/> 캘린더 구독 URL 복사
-                    </button>
-                </div>
-
-                <div className="memo-section">
-                    <label>초기화</label>
-                    <button 
-                        className="status-option locked" 
-                        style={{ justifyContent: 'center', border: '1px solid #ff3b30', background: '#fff0f0' }}
-                        onClick={handleResetData}
-                    >
-                        <RotateCcw size={16}/> 모든 데이터 초기화
-                    </button>
-                </div>
-
-                <div className="modal-actions" style={{ marginTop: '24px', borderTop: 'none' }}>
-                    <div style={{ flex: 1 }}></div>
-                    <button 
-                        style={{
-                            padding: '12px 24px', borderRadius: '16px', border: 'none',
-                            background: '#1d1d1f', color: 'white', fontWeight: '700', fontSize: '14px', cursor: 'pointer'
-                        }}
-                        onClick={() => setIsSettingsOpen(false)}
-                    >
-                        완료
-                    </button>
-                </div>
+        {/* CONTEXT MENU */}
+        {contextMenu && contextMenu.visible && (
+            <div 
+              className="context-menu" 
+              style={{ top: contextMenu.y, left: contextMenu.x }}
+              onClick={(e) => e.stopPropagation()}
+            >
+                <button onClick={handleContextAdd}>
+                    <Plus size={14}/> {t('step.addAt')} ({Number.isInteger(contextMenu.index) ? contextMenu.index + 1 : '?'})
+                </button>
             </div>
-        </div>
-       )}
+        )}
 
-       {/* STEP EDITOR MODAL */}
-       {editingStep && (
-           <div className="modal-overlay" onClick={closeEditor}>
-               <div className="glass-modal" onClick={e => e.stopPropagation()}>
-                   <div className="modal-header">
-                      <h3>단계 설정</h3>
-                      <button className="close-btn" onClick={closeEditor}><X size={18}/></button>
-                   </div>
-                   
-                   <div className="step-preview-large">
-                       {editingStep.step.title}
-                   </div>
-                   
-                   <div className="status-grid">
-                       <button className="status-option done" onClick={() => saveStepStatus('done')}>
-                           <div className="dot done"/> 완료 (Done)
-                       </button>
-                       <button className="status-option active" onClick={() => saveStepStatus('active')}>
-                           <div className="dot active"/> 진행 중 (Active)
-                       </button>
-                       <button className="status-option pending" onClick={() => saveStepStatus('pending')}>
-                           <div className="dot pending"/> 대기 (Pending)
-                       </button>
-                       <button className="status-option locked" onClick={() => saveStepStatus('locked')}>
-                           <div className="dot locked"/> 잠김 (Locked)
-                       </button>
-                   </div>
+        {/* SETTINGS MODAL */}
+        {isSettingsOpen && (
+         <div className="modal-overlay" onClick={() => setIsSettingsOpen(false)}>
+             <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
+                 <div className="modal-header">
+                     <h3>{t('settings.title')}</h3>
+                     <button className="close-btn" onClick={() => setIsSettingsOpen(false)}><X size={18}/></button>
+                 </div>
+                 
+                 <div className="memo-section">
+                     <label>Language</label>
+                     <select 
+                         value={i18n.language} 
+                         onChange={(e) => i18n.changeLanguage(e.target.value)}
+                         className="glass-input"
+                         style={{ width: '100%', marginTop: '8px' }}
+                     >
+                         <option value="en">English</option>
+                         <option value="ko">한국어</option>
+                         <option value="ja">日本語</option>
+                         <option value="zh">中文</option>
+                     </select>
+                 </div>
 
-                   <div className="memo-section">
-                       <label>매뉴얼 / 메모</label>
-                       <textarea 
-                           className="glass-textarea"
-                           placeholder="이 단계에서 수행해야 할 구체적인 업무 내용을 적어주세요."
-                           defaultValue={editingStep.step.description || ''}
-                           onBlur={(e) => updateStepDescription(editingStep.pipelineId, editingStep.step.id, e.target.value)}
-                       />
-                   </div>
+                 <div className="memo-section">
+                     <label>{t('settings.dataManagement')}</label>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                         <button 
+                             className="status-option pending" 
+                             style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f' }}
+                             onClick={handleExportData}
+                         >
+                             <Download size={16}/> {t('settings.backup')}
+                         </button>
+                         
+                         <label 
+                             className="status-option pending" 
+                             style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f', cursor: 'pointer', margin: 0 }}
+                         >
+                             <Upload size={16}/> 
+                             {t('settings.restore')}
+                             <input 
+                                 type="file" 
+                                 accept=".json" 
+                                 style={{ display: 'none' }} 
+                                 onChange={handleImportData}
+                             />
+                         </label>
+                     </div>
+                 </div>
 
-                   <div className="modal-actions">
-                       <button className="action-btn text" onClick={() => { 
-                           const newName = prompt("이름 변경:", editingStep.step.title); 
-                           if(newName) { renameStep(editingStep.pipelineId, editingStep.step.id, newName); closeEditor(); } 
-                       }}>
-                           이름 변경
-                       </button>
-                       <button className="action-btn danger" onClick={() => { requestDelete('step', editingStep.step.id, editingStep.pipelineId); }}>
-                           삭제
-                       </button>
-                   </div>
-               </div>
-           </div>
-       )}
+                 <div className="memo-section">
+                     <label>{t('settings.calendar')}</label>
+                     <p style={{ fontSize: '11px', color: '#86868b', marginBottom: '8px', lineHeight: '1.4' }}>
+                         {t('settings.calendarDesc')}
+                     </p>
+                     <button 
+                         className="status-option pending" 
+                         style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f' }}
+                         onClick={() => {
+                             const calUrl = `http://${window.location.hostname}:8020/api/calendar/feed`;
+                             navigator.clipboard.writeText(calUrl);
+                             alert(t('settings.calendarCopied') + '\n\n' + t('settings.calendarInstructions'));
+                         }}
+                     >
+                         <Copy size={16}/> {t('settings.copyCalendarUrl')}
+                     </button>
+                 </div>
 
-       {/* ADD STEP MODAL */}
-       {isAddingStep && (
-           <div className="modal-overlay" onClick={closeStepModal}>
-               <div className="glass-modal" onClick={e => e.stopPropagation()}>
-                   <div className="modal-header">
-                      <h3>단계 추가</h3>
-                      <button className="close-btn" onClick={closeStepModal}><X size={18}/></button>
-                   </div>
-                   
-                   <div className="form-group">
-                       <label>단계 이름</label>
-                       <input 
-                         className="glass-input" 
-                         placeholder="예: 디자인 시안 검토" 
-                         value={newStepTitle}
-                         onChange={e => setNewStepTitle(e.target.value)}
-                         autoFocus
-                         onKeyDown={e => e.key === 'Enter' && handleConfirmAddStep()}
-                       />
-                   </div>
+                 <div className="memo-section">
+                     <label>{t('settings.reset')}</label>
+                     <button 
+                         className="status-option locked" 
+                         style={{ justifyContent: 'center', border: '1px solid #ff3b30', background: '#fff0f0' }}
+                         onClick={handleResetData}
+                     >
+                         <RotateCcw size={16}/> {t('settings.resetAll')}
+                     </button>
+                 </div>
 
-                   <button className="primary-glass-btn" onClick={handleConfirmAddStep}>
-                       추가하기
-                   </button>
-               </div>
-           </div>
-       )}
+                 <div className="modal-actions" style={{ marginTop: '24px', borderTop: 'none' }}>
+                     <div style={{ flex: 1 }}></div>
+                     <button 
+                         style={{
+                             padding: '12px 24px', borderRadius: '16px', border: 'none',
+                             background: '#1d1d1f', color: 'white', fontWeight: '700', fontSize: '14px', cursor: 'pointer'
+                         }}
+                         onClick={() => setIsSettingsOpen(false)}
+                     >
+                         {t('settings.done')}
+                     </button>
+                 </div>
+             </div>
+         </div>
+        )}
 
-       {/* NEW PIPELINE MODAL */}
-       {isAddingPipeline && (
-           <div className="modal-overlay" onClick={closePipeModal}>
-               <div className="glass-modal" onClick={e => e.stopPropagation()}>
-                   <div className="modal-header">
-                      <h3>새 워크플로우 만들기</h3>
-                      <button className="close-btn" onClick={closePipeModal}><X size={18}/></button>
-                   </div>
-                   
-                   <div className="form-group">
-                       <label>제목</label>
-                       <input 
-                         className="glass-input" 
-                         placeholder="예: 신제품 런칭" 
-                         value={newPipeTitle}
-                         onChange={e => setNewPipeTitle(e.target.value)}
-                         autoFocus
-                       />
-                   </div>
-                   
-                   <div className="form-group">
-                       <label>부제목</label>
-                       <input 
-                         className="glass-input" 
-                         placeholder="예: 2025 Q1 마케팅"
-                         value={newPipeSubtitle}
-                         onChange={e => setNewPipeSubtitle(e.target.value)}
-                       />
-                   </div>
-
-
-                    <div className="form-group">
-                       <div className="color-selector">
-                           {ALL_COLORS.map(c => (
-                               <div 
-                                 key={c} 
-                                 className={`color-dot-select ${c} ${newPipeColor === c ? 'selected' : ''}`}
-                                 onClick={() => setNewPipeColor(c)}
-                               />
-                           ))}
-                           <label className="custom-color-label" title="커스텀 색상 선택">
-                               <input 
-                                 type="color" 
-                                 className="hidden-color-input"
-                                 value={(newPipeColor && newPipeColor.startsWith('#')) ? newPipeColor : '#ffffff'}
-                                 onChange={(e) => setNewPipeColor(e.target.value)}
-                               />
-                               <div 
-                                 className={`custom-icon ${(newPipeColor && newPipeColor.startsWith('#')) ? 'selected' : ''}`}
-                                 style={{ 
-                                     background: (newPipeColor && newPipeColor.startsWith('#')) ? newPipeColor : '#f2f2f7',
-                                     display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                 }}
-                               >
-                                 {!(newPipeColor && newPipeColor.startsWith('#')) && <Palette size={14} color="#1d1d1f"/>}
-                               </div>
-                           </label>
-                       </div>
-                   </div>
-
-                   <button className="primary-glass-btn" onClick={handleCreatePipeline}>
-                       워크플로우 생성
-                   </button>
-               </div>
-           </div>
-       )}
-
-        {/* RENAME MODAL */}
-        {renamingPipeline && (
-            <div className="modal-overlay" onClick={() => setRenamingPipeline(null)}>
+        {/* STEP EDITOR MODAL */}
+        {editingStep && (
+            <div className="modal-overlay" onClick={closeEditor}>
                 <div className="glass-modal" onClick={e => e.stopPropagation()}>
                     <div className="modal-header">
-                       <h3>이름 변경</h3>
-                       <button className="close-btn" onClick={() => setRenamingPipeline(null)}><X size={18}/></button>
+                       <h3>{t('step.settings')}</h3>
+                       <button className="close-btn" onClick={closeEditor}><X size={18}/></button>
                     </div>
                     
-                    <div className="form-group">
-                        <label>워크플로우 이름</label>
-                        <input 
-                          className="glass-input" 
-                          value={renameInput}
-                          onChange={e => setRenameInput(e.target.value)}
-                          autoFocus
-                          onKeyDown={e => e.key === 'Enter' && handleConfirmRename()}
+                    <div className="step-preview-large">
+                        {editingStep.step.title}
+                    </div>
+                    
+                    <div className="status-grid">
+                        <button className="status-option done" onClick={() => saveStepStatus('done')}>
+                            <div className="dot done"/> {t('status.done')}
+                        </button>
+                        <button className="status-option active" onClick={() => saveStepStatus('active')}>
+                            <div className="dot active"/> {t('status.active')}
+                        </button>
+                        <button className="status-option pending" onClick={() => saveStepStatus('pending')}>
+                            <div className="dot pending"/> {t('status.pending')}
+                        </button>
+                        <button className="status-option locked" onClick={() => saveStepStatus('locked')}>
+                            <div className="dot locked"/> {t('status.locked')}
+                        </button>
+                    </div>
+
+                    <div className="memo-section">
+                        <label>{t('step.memo')}</label>
+                        <textarea 
+                            className="glass-textarea"
+                            placeholder={t('step.memoPlaceholder')}
+                            defaultValue={editingStep.step.description || ''}
+                            onBlur={(e) => updateStepDescription(editingStep.pipelineId, editingStep.step.id, e.target.value)}
                         />
                     </div>
 
-                    <button className="primary-glass-btn" onClick={handleConfirmRename}>
-                        저장하기
+                    <div className="modal-actions">
+                        <button className="action-btn text" onClick={() => { 
+                            const newName = prompt(t('workflow.rename') + ":", editingStep.step.title); 
+                            if(newName) { renameStep(editingStep.pipelineId, editingStep.step.id, newName); closeEditor(); } 
+                        }}>
+                            {t('workflow.rename')}
+                        </button>
+                        <button className="action-btn danger" onClick={() => { requestDelete('step', editingStep.step.id, editingStep.pipelineId); }}>
+                            {t('workflow.delete')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* ADD STEP MODAL */}
+        {isAddingStep && (
+            <div className="modal-overlay" onClick={closeStepModal}>
+                <div className="glass-modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal-header">
+                       <h3>{t('step.add')}</h3>
+                       <button className="close-btn" onClick={closeStepModal}><X size={18}/></button>
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>{t('step.name')}</label>
+                        <input 
+                          className="glass-input" 
+                          placeholder={t('step.namePlaceholder')} 
+                          value={newStepTitle}
+                          onChange={e => setNewStepTitle(e.target.value)}
+                          autoFocus
+                          onKeyDown={e => e.key === 'Enter' && handleConfirmAddStep()}
+                        />
+                    </div>
+
+                    <button className="primary-glass-btn" onClick={handleConfirmAddStep}>
+                        {t('step.addButton')}
                     </button>
                 </div>
             </div>
         )}
+
+        {/* NEW PIPELINE MODAL */}
+        {isAddingPipeline && (
+            <div className="modal-overlay" onClick={closePipeModal}>
+                <div className="glass-modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal-header">
+                       <h3>{t('workflow.create')}</h3>
+                       <button className="close-btn" onClick={closePipeModal}><X size={18}/></button>
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>{t('workflow.title')}</label>
+                        <input 
+                          className="glass-input" 
+                          placeholder={t('workflow.titlePlaceholder')} 
+                          value={newPipeTitle}
+                          onChange={e => setNewPipeTitle(e.target.value)}
+                          autoFocus
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>{t('workflow.subtitle')}</label>
+                        <input 
+                          className="glass-input" 
+                          placeholder={t('workflow.subtitlePlaceholder')}
+                          value={newPipeSubtitle}
+                          onChange={e => setNewPipeSubtitle(e.target.value)}
+                        />
+                    </div>
+
+
+                     <div className="form-group">
+                        <div className="color-selector">
+                            {ALL_COLORS.map(c => (
+                                <div 
+                                  key={c} 
+                                  className={`color-dot-select ${c} ${newPipeColor === c ? 'selected' : ''}`}
+                                  onClick={() => setNewPipeColor(c)}
+                                />
+                            ))}
+                            <label className="custom-color-label" title="Custom Color">
+                                <input 
+                                  type="color" 
+                                  className="hidden-color-input"
+                                  value={(newPipeColor && newPipeColor.startsWith('#')) ? newPipeColor : '#ffffff'}
+                                  onChange={(e) => setNewPipeColor(e.target.value)}
+                                />
+                                <div 
+                                  className={`custom-icon ${(newPipeColor && newPipeColor.startsWith('#')) ? 'selected' : ''}`}
+                                  style={{ 
+                                      background: (newPipeColor && newPipeColor.startsWith('#')) ? newPipeColor : '#f2f2f7',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                  }}
+                                >
+                                  {!(newPipeColor && newPipeColor.startsWith('#')) && <Palette size={14} color="#1d1d1f"/>}
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button className="primary-glass-btn" onClick={handleCreatePipeline}>
+                        {t('workflow.create')}
+                    </button>
+                </div>
+            </div>
+        )}
+
+         {/* RENAME MODAL */}
+         {renamingPipeline && (
+             <div className="modal-overlay" onClick={() => setRenamingPipeline(null)}>
+                 <div className="glass-modal" onClick={e => e.stopPropagation()}>
+                     <div className="modal-header">
+                        <h3>{t('workflow.rename')}</h3>
+                        <button className="close-btn" onClick={() => setRenamingPipeline(null)}><X size={18}/></button>
+                     </div>
+                     
+                     <div className="form-group">
+                         <label>{t('workflow.name')}</label>
+                         <input 
+                           className="glass-input" 
+                           value={renameInput}
+                           onChange={e => setRenameInput(e.target.value)}
+                           autoFocus
+                           onKeyDown={e => e.key === 'Enter' && handleConfirmRename()}
+                         />
+                     </div>
+
+                     <button className="primary-glass-btn" onClick={handleConfirmRename}>
+                         {t('workflow.save')}
+                     </button>
+                 </div>
+             </div>
+         )}
 
       {/* DELETE CONFIRMATION MODAL */}
       {deleteConfirm && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="glass-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>삭제 확인</h3>
+              <h3>{t('modal.deleteTitle')}</h3>
               <button className="close-btn" onClick={() => setDeleteConfirm(null)}><X size={18}/></button>
             </div>
             
@@ -923,7 +960,7 @@ const AppleCommandCenter = () => {
                     background: '#f5f5f7', color: '#1d1d1f', fontWeight: '700', fontSize: '14px', cursor: 'pointer'
                 }}
               >
-                취소
+                {t('modal.cancel')}
               </button>
               <button 
                 onClick={confirmDelete}
@@ -934,7 +971,7 @@ const AppleCommandCenter = () => {
                     boxShadow: '0 4px 12px rgba(255, 59, 48, 0.3)'
                 }} 
               >
-                삭제하기
+                {t('modal.delete')}
               </button>
             </div>
           </div>

@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "DailyWave",
+    "tagline": "日々の混乱を流れるリズムに"
+  },
+  "sidebar": {
+    "morningRoutine": "午前ルーティン",
+    "afternoonRoutine": "午後ルーティン",
+    "addPlaceholder": "タスクを入力..."
+  },
+  "header": {
+    "focusMode": "集中モード",
+    "newWorkflow": "新規ワークフロー"
+  },
+  "workflow": {
+    "create": "ワークフロー作成",
+    "title": "タイトル",
+    "titlePlaceholder": "例: 新製品ローンチ",
+    "subtitle": "サブタイトル",
+    "subtitlePlaceholder": "例: Q1マーケティング",
+    "delete": "削除",
+    "rename": "名前変更",
+    "save": "保存",
+    "deleteConfirm": "このワークフローを完全に削除しますか？",
+    "name": "ワークフロー名"
+  },
+  "step": {
+    "settings": "ステップ設定",
+    "add": "ステップ追加",
+    "addAt": "この位置にステップを追加",
+    "name": "ステップ名",
+    "namePlaceholder": "例: デザイン案レビュー",
+    "addButton": "追加",
+    "deleteConfirm": "このステップを削除しますか？",
+    "memo": "マニュアル / メモ",
+    "memoPlaceholder": "このステップで実行する具体的なタスクを記入してください。"
+  },
+  "status": {
+    "done": "完了",
+    "active": "進行中",
+    "pending": "待機",
+    "locked": "ロック",
+    "now": "Now"
+  },
+  "routine": {
+    "deleteConfirm": "このルーティンを削除しますか？"
+  },
+  "settings": {
+    "title": "設定とデータ",
+    "dataManagement": "データ管理",
+    "backup": "データバックアップ（ダウンロード）",
+    "restore": "データ復元（ファイル選択）",
+    "calendar": "カレンダー連携（Apple/Google）",
+    "calendarDesc": "ワークフローをカレンダーアプリに同期できます。下記のURLをコピーして、カレンダーの新規購読に追加してください。",
+    "copyCalendarUrl": "カレンダーURLをコピー",
+    "calendarCopied": "カレンダー購読URLがコピーされました！",
+    "calendarInstructions": "1. Appleカレンダー: ファイル -> 新規カレンダー購読\n2. Googleカレンダー: 他のカレンダー + -> URLで追加\n上記のURLを貼り付けて連携してください。",
+    "reset": "リセット",
+    "resetAll": "全データをリセット",
+    "resetConfirm": "本当に全てのデータをリセットしますか？リセット後、ページを更新するとデフォルトのワークフローが復元されます。",
+    "dataReset": "データがリセットされました。更新後にデフォルト設定が復元されます。",
+    "done": "完了",
+    "restoreSuccess": "データが正常に復元されました。",
+    "restoreError": "無効なバックアップファイルです。"
+  },
+  "modal": {
+    "deleteTitle": "削除確認",
+    "cancel": "キャンセル",
+    "delete": "削除"
+  },
+  "time": {
+    "morning": "午前",
+    "afternoon": "午後"
+  },
+  "auth": {
+    "signIn": "サインイン",
+    "subtitle": "デバイス間で同期するにはサインインしてください",
+    "google": "Googleで続行",
+    "apple": "Appleで続行",
+    "github": "GitHubで続行",
+    "guest": "ゲストとして続行",
+    "notConfigured": "クラウド同期が設定されていません。ローカルストレージを使用しています。",
+    "signOut": "サインアウト"
+  }
+}

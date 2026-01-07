@@ -7,13 +7,16 @@ from calendar_gen import generate_calendar_ics
 from typing import Dict, Any
 
 
-app = FastAPI(title="Marktrade Workflow Engine")
+app = FastAPI(
+    title="DailyWave API",
+    description="Transform your daily chaos into a flowing rhythm",
+    version="1.0.0"
+)
 storage = StorageManager()
 
-# Allow CORS for local frontend development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3020", "http://192.168.1.148:3020", "http://192.168.1.111:3020"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,12 +46,12 @@ async def get_calendar_feed():
 
 @app.on_event("startup")
 async def startup_event():
-    print("Marktrade Workflow Engine Started")
+    print("🌊 DailyWave API Started")
 
 
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "Marktrade Engine is Running"}
+    return {"status": "ok", "message": "DailyWave API is Running", "version": "1.0.0"}
 
 @app.post("/execute")
 async def execute_workflow(workflow: Workflow):
