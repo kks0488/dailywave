@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Play, Pause, RotateCcw, ChevronRight, Zap, BatteryLow, BatteryMedium, Send, MessageCircle } from 'lucide-react';
+import { Sparkles, Play, Pause, RotateCcw, ChevronRight, Zap, BatteryLow, BatteryMedium, Send, MessageCircle, Sun, Trophy, ListTodo } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getWhatsNext, hasApiKey, parseAICommand } from '../lib/gemini';
+import { getWhatsNext, hasApiKey, parseAICommand, getDailySummary, getQuickActions } from '../lib/gemini';
 import { useToastStore } from '../store/useToastStore';
 import './WhatsNext.css';
 
@@ -17,6 +17,9 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
   const [totalTime, setTotalTime] = useState(0);
   const [chatInput, setChatInput] = useState('');
   const [chatMode, setChatMode] = useState(false);
+  const [dailySummary, setDailySummary] = useState(null);
+  const [quickActions, setQuickActions] = useState(null);
+  const [activeTab, setActiveTab] = useState('recommend');
   const timerRef = useRef(null);
 
   const handleChatSubmit = async (e) => {
@@ -40,6 +43,32 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
         toast('info', result.confirmation);
       }
       setChatInput('');
+    } catch (error) {
+      toast('error', `AI Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchDailySummary = async () => {
+    if (!hasApiKey()) return;
+    setIsLoading(true);
+    try {
+      const result = await getDailySummary(pipelines, routines);
+      setDailySummary(result);
+    } catch (error) {
+      toast('error', `AI Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchQuickActions = async () => {
+    if (!hasApiKey()) return;
+    setIsLoading(true);
+    try {
+      const result = await getQuickActions(pipelines, routines, energy);
+      setQuickActions(result);
     } catch (error) {
       toast('error', `AI Error: ${error.message}`);
     } finally {
@@ -146,7 +175,102 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
         </div>
       </div>
 
-      {recommendation ? (
+      <div className="ai-tabs">
+        <button 
+          className={`ai-tab ${activeTab === 'recommend' ? 'active' : ''}`}
+          onClick={() => setActiveTab('recommend')}
+        >
+          <Sparkles size={14} />
+          {t('ai.tabRecommend', 'Recommend')}
+        </button>
+        <button 
+          className={`ai-tab ${activeTab === 'quick' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('quick'); if (!quickActions) fetchQuickActions(); }}
+        >
+          <ListTodo size={14} />
+          {t('ai.tabQuick', 'Quick Actions')}
+        </button>
+        <button 
+          className={`ai-tab ${activeTab === 'summary' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('summary'); if (!dailySummary) fetchDailySummary(); }}
+        >
+          <Trophy size={14} />
+          {t('ai.tabSummary', 'Daily Summary')}
+        </button>
+      </div>
+
+      {activeTab === 'quick' && (
+        <div className="quick-actions-content">
+          {isLoading ? (
+            <div className="loading-state">
+              <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+            </div>
+          ) : quickActions ? (
+            <div className="quick-actions-list">
+              {quickActions.map((action, idx) => (
+                <div key={idx} className={`quick-action-item ${action.type}`}>
+                  <span className="action-emoji">{action.emoji}</span>
+                  <div className="action-details">
+                    <span className="action-text">{action.action}</span>
+                    <span className="action-duration">{action.duration}min</span>
+                  </div>
+                </div>
+              ))}
+              <button className="refresh-btn small" onClick={fetchQuickActions} disabled={isLoading}>
+                <RotateCcw size={12} />
+                {t('ai.refresh', 'Refresh')}
+              </button>
+            </div>
+          ) : (
+            <button className="ask-ai-btn small" onClick={fetchQuickActions} disabled={isLoading}>
+              <ListTodo size={16} />
+              {t('ai.getQuickActions', 'Get Quick Actions')}
+            </button>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'summary' && (
+        <div className="daily-summary-content">
+          {isLoading ? (
+            <div className="loading-state">
+              <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+            </div>
+          ) : dailySummary ? (
+            <div className="summary-display">
+              <div className={`mood-badge ${dailySummary.mood}`}>
+                {dailySummary.mood === 'great' ? '🎉' : dailySummary.mood === 'good' ? '😊' : dailySummary.mood === 'okay' ? '👍' : '💪'}
+              </div>
+              <p className="celebration">{dailySummary.celebration}</p>
+              <div className="summary-stats">
+                <div className="stat completed">
+                  <span className="stat-num">{dailySummary.completedCount}</span>
+                  <span className="stat-label">{t('ai.completed', 'Done')}</span>
+                </div>
+                <div className="stat pending">
+                  <span className="stat-num">{dailySummary.pendingCount}</span>
+                  <span className="stat-label">{t('ai.pending', 'Left')}</span>
+                </div>
+              </div>
+              <div className="tomorrow-tip">
+                <Sun size={14} />
+                <span>{dailySummary.tomorrowTip}</span>
+              </div>
+              <button className="refresh-btn small" onClick={fetchDailySummary} disabled={isLoading}>
+                <RotateCcw size={12} />
+                {t('ai.refresh', 'Refresh')}
+              </button>
+            </div>
+          ) : (
+            <button className="ask-ai-btn small" onClick={fetchDailySummary} disabled={isLoading}>
+              <Trophy size={16} />
+              {t('ai.getDailySummary', 'Get Daily Summary')}
+            </button>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'recommend' && recommendation ? (
         <div className="recommendation-content">
           <div className="task-display">
             <span className="task-name">{recommendation.task}</span>
@@ -191,7 +315,7 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
             {t('ai.nextTask', 'Get Next Task')}
           </button>
         </div>
-      ) : (
+      ) : activeTab === 'recommend' ? (
         <div className="empty-state">
           <button 
             className="ask-ai-btn" 
@@ -211,7 +335,7 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
           </button>
           <p className="hint">{t('ai.hint', 'AI will analyze your tasks and energy level')}</p>
         </div>
-      )}
+      ) : null}
 
       <div className="ai-chat-section">
         <button 

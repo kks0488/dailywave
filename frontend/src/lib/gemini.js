@@ -39,7 +39,7 @@ Current date: ${new Date().toLocaleDateString()}`;
       }],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 500,
+        maxOutputTokens: 2048,
       }
     })
   });
@@ -166,7 +166,7 @@ NOW PARSE AND OUTPUT JSON ONLY:`;
   console.log('AI command raw response:', response);
   
   try {
-    const jsonMatch = response.match(/\{[^{}]*\}/);
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       console.log('Parsed command:', parsed);
@@ -203,4 +203,204 @@ Respond with ONLY a JSON object, no other text:
   }
   
   return { minutes: 25, breakdown: null };
+};
+
+export const getDailySummary = async (pipelines, routines) => {
+  const completedRoutines = routines.filter(r => r.done);
+  const pendingRoutines = routines.filter(r => !r.done);
+  
+  const completedTasks = [];
+  const pendingTasks = [];
+  
+  pipelines.forEach(p => {
+    p.steps?.forEach(step => {
+      if (step.status === 'completed') {
+        completedTasks.push({ pipeline: p.title, task: step.name });
+      } else if (step.status === 'active' || step.status === 'pending') {
+        pendingTasks.push({ pipeline: p.title, task: step.name });
+      }
+    });
+  });
+
+  const prompt = `You are DailyWave AI. Generate a daily summary for an ADHD user.
+
+COMPLETED TODAY:
+- Routines: ${completedRoutines.map(r => r.title).join(', ') || 'None'}
+- Workflow tasks: ${completedTasks.map(t => t.task).join(', ') || 'None'}
+
+STILL PENDING:
+- Routines: ${pendingRoutines.map(r => r.title).join(', ') || 'None'}
+- Workflow tasks: ${pendingTasks.map(t => t.task).join(', ') || 'None'}
+
+Current time: ${new Date().toLocaleTimeString()}
+
+Respond with ONLY this JSON format:
+{
+  "celebration": "Short celebration message for what they accomplished (max 15 words)",
+  "completedCount": ${completedRoutines.length + completedTasks.length},
+  "pendingCount": ${pendingRoutines.length + pendingTasks.length},
+  "tomorrowTip": "One specific tip for tomorrow based on pending items (max 20 words)",
+  "mood": "great" | "good" | "okay" | "needs_improvement"
+}`;
+
+  const response = await askGemini(prompt);
+  
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (e) {
+    console.error('Failed to parse daily summary:', e);
+  }
+  
+  return {
+    celebration: "Great effort today!",
+    completedCount: completedRoutines.length + completedTasks.length,
+    pendingCount: pendingRoutines.length + pendingTasks.length,
+    tomorrowTip: "Start with your most important task first.",
+    mood: "good"
+  };
+};
+
+export const suggestOptimalTime = async (taskTitle, userEnergy = 'medium') => {
+  const hour = new Date().getHours();
+  
+  const prompt = `You are DailyWave AI. Suggest the best time to do this task for someone with ADHD.
+
+Task: ${taskTitle}
+Current hour: ${hour}:00
+User's current energy: ${userEnergy}
+
+Consider:
+- Morning (6-11): Best for focused work, important decisions
+- Midday (11-14): Good for meetings, collaborative work
+- Afternoon (14-17): Good for routine tasks, emails
+- Evening (17-21): Creative work, planning
+- Night (21+): Wind-down tasks only
+
+Respond with ONLY this JSON:
+{
+  "suggestedTime": "HH:MM",
+  "reason": "Why this time is optimal (max 15 words)",
+  "alternativeTime": "HH:MM",
+  "energyRequired": "low" | "medium" | "high"
+}`;
+
+  const response = await askGemini(prompt);
+  
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (e) {
+    console.error('Failed to parse time suggestion:', e);
+  }
+  
+  return {
+    suggestedTime: "09:00",
+    reason: "Morning is best for important tasks",
+    alternativeTime: "14:00",
+    energyRequired: "medium"
+  };
+};
+
+export const analyzeRoutinePatterns = async (routines, completionHistory = []) => {
+  const routineStats = routines.map(r => ({
+    title: r.title,
+    time: r.time,
+    type: r.type,
+    done: r.done
+  }));
+
+  const prompt = `You are DailyWave AI. Analyze routine patterns for an ADHD user.
+
+Current routines: ${JSON.stringify(routineStats)}
+Recent completion history: ${JSON.stringify(completionHistory.slice(-14))}
+
+Identify patterns and suggest improvements.
+
+Respond with ONLY this JSON:
+{
+  "insights": [
+    {
+      "type": "positive" | "warning" | "suggestion",
+      "message": "Short insight (max 20 words)",
+      "affectedRoutine": "routine title or null"
+    }
+  ],
+  "overallScore": number 1-100,
+  "topSuggestion": "Most important suggestion (max 25 words)"
+}`;
+
+  const response = await askGemini(prompt);
+  
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (e) {
+    console.error('Failed to parse pattern analysis:', e);
+  }
+  
+  return {
+    insights: [{ type: "positive", message: "Keep up the good work!", affectedRoutine: null }],
+    overallScore: 70,
+    topSuggestion: "Try to complete morning routines first."
+  };
+};
+
+export const getQuickActions = async (pipelines, routines, currentEnergy = 'medium') => {
+  const hour = new Date().getHours();
+  const pendingRoutines = routines.filter(r => !r.done);
+  const activeTasks = [];
+  
+  pipelines.forEach(p => {
+    p.steps?.forEach(step => {
+      if (step.status === 'active' || step.status === 'pending') {
+        activeTasks.push({ pipeline: p.title, task: step.name, status: step.status });
+      }
+    });
+  });
+
+  const prompt = `You are DailyWave AI. Suggest 3 quick actions for RIGHT NOW.
+
+Current time: ${hour}:00
+Energy level: ${currentEnergy}
+Pending routines: ${pendingRoutines.map(r => `${r.title} (${r.time})`).join(', ') || 'None'}
+Active tasks: ${activeTasks.map(t => t.task).join(', ') || 'None'}
+
+Rules:
+- Each action should take 5-15 minutes max
+- Match suggestions to energy level
+- Prioritize time-sensitive items
+
+Respond with ONLY this JSON array:
+[
+  {
+    "action": "Specific action to take",
+    "type": "routine" | "task" | "break" | "quick_win",
+    "duration": number (minutes),
+    "emoji": "relevant emoji"
+  }
+]`;
+
+  const response = await askGemini(prompt);
+  
+  try {
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (e) {
+    console.error('Failed to parse quick actions:', e);
+  }
+  
+  return [
+    { action: "Take a 2-minute stretch break", type: "break", duration: 2, emoji: "🧘" },
+    { action: "Review your next task", type: "quick_win", duration: 5, emoji: "📋" },
+    { action: "Drink some water", type: "break", duration: 1, emoji: "💧" }
+  ];
 };

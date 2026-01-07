@@ -59,7 +59,7 @@ const AppleCommandCenter = () => {
 
   // --- PERSISTENCE: LOAD & SAVE ---
   const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const backendUrl = isLocalDev ? `http://${window.location.hostname}:8020` : null;
+  const backendUrl = isLocalDev ? `http://${window.location.hostname}:8030` : null;
 
   useEffect(() => {
     // 1. Load from Backend (local dev) or localStorage (production)
@@ -830,7 +830,7 @@ const AppleCommandCenter = () => {
                          className="status-option pending" 
                          style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f' }}
                           onClick={() => {
-                              const calUrl = `http://${window.location.hostname}:8020/api/calendar/feed`;
+                              const calUrl = `http://${window.location.hostname}:8030/api/calendar/feed`;
                               navigator.clipboard.writeText(calUrl);
                               toast.success(t('settings.calendarCopied'));
                           }}
