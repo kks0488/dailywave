@@ -494,7 +494,7 @@ const AppleCommandCenter = () => {
                  renderedItems.push(
                      <div key="timeline-marker" className="timeline-marker">
                          <div className="line"></div>
-                         <div className="badge">NOW</div>
+                         <div className="badge">NOW {currentTime}</div>
                          <div className="line"></div>
                      </div>
                  );
