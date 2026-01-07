@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCommandStore } from '../store/useCommandStore';
+import { toast } from '../store/useToastStore';
+import ToastContainer from './Toast';
+import { PipelineSkeleton, RoutineSkeleton } from './Skeleton';
+import { EmptyPipelines, EmptyRoutines } from './EmptyState';
 import {
     Check, Plus, X, Settings, ChevronRight,
     MoreHorizontal, RotateCcw, Box, Briefcase,
@@ -48,6 +52,7 @@ const AppleCommandCenter = () => {
 
   // LOCAL UI STATE
   const [editingStep, setEditingStep] = useState(null); // { pipelineId, step }
+  const [isLoading, setIsLoading] = useState(true);
 
   // --- PERSISTENCE: LOAD & SAVE ---
   useEffect(() => {
@@ -60,7 +65,10 @@ const AppleCommandCenter = () => {
                 console.log("Loaded state from backend file.");
             }
         })
-        .catch(err => console.error("Failed to load persistence:", err));
+        .catch(err => console.error("Failed to load persistence:", err))
+        .finally(() => {
+            setTimeout(() => setIsLoading(false), 500);
+        });
 
     // 2. Auto-Save Subscription
     let timeoutId;
@@ -169,14 +177,14 @@ const AppleCommandCenter = () => {
               const parsed = JSON.parse(event.target.result);
               if (parsed.pipelines && parsed.routines) {
                   hydrate(parsed);
-                  alert(t('settings.restoreSuccess'));
+                  toast.success(t('settings.restoreSuccess'));
                   setIsSettingsOpen(false);
               } else {
-                  alert(t('settings.restoreError'));
+                  toast.error(t('settings.restoreError'));
               }
           } catch (err) {
               console.error(err);
-              alert(t('settings.restoreError'));
+              toast.error(t('settings.restoreError'));
           }
       };
       reader.readAsText(file);
@@ -186,7 +194,7 @@ const AppleCommandCenter = () => {
       if (confirm(t('settings.resetConfirm'))) {
         hydrate({ pipelines: [], routines: [] });
         setIsSettingsOpen(false);
-        alert(t('settings.dataReset'));
+        toast.success(t('settings.dataReset'));
       }
   };
 
@@ -297,7 +305,7 @@ const AppleCommandCenter = () => {
   };
 
   const handleCreatePipeline = () => {
-      if(!newPipeTitle.trim()) return alert(t('workflow.title'));
+      if(!newPipeTitle.trim()) return toast.warning(t('workflow.title'));
       
       // Smart Fallback: If user didn't pick a color, auto-assign the next one
       const finalColor = newPipeColor || ALL_COLORS[pipelines.length % ALL_COLORS.length];
@@ -522,7 +530,7 @@ const AppleCommandCenter = () => {
        <aside className="acc-sidebar">
          {/* Logo & Date */}
          <div className="sidebar-top">
-            <div className="acc-logo">MARKTRADE</div>
+            <div className="acc-logo">DailyWave</div>
             <div className="date-badge">
                 {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', weekday: 'short' }).replace(/\//g, '.')}            </div>
          </div>
@@ -533,7 +541,16 @@ const AppleCommandCenter = () => {
                <h3>{t('sidebar.morningRoutine')}</h3>
                <button className="add-mini-btn" onClick={() => setAddingRoutineType('morning')}><Plus size={12}/></button>
              </div>
-             {renderRoutineList('morning')}
+             {isLoading ? (
+                 <>
+                     <RoutineSkeleton />
+                     <RoutineSkeleton />
+                 </>
+             ) : (
+                 <>
+                    {renderRoutineList('morning').length > 0 ? renderRoutineList('morning') : <EmptyRoutines type="morning" onAction={() => setAddingRoutineType('morning')} />}
+                 </>
+             )}
              {addingRoutineType === 'morning' && (
                  <div className="add-routine-form">
                      <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
@@ -549,7 +566,16 @@ const AppleCommandCenter = () => {
                <h3>{t('sidebar.afternoonRoutine')}</h3>
                <button className="add-mini-btn" onClick={() => setAddingRoutineType('afternoon')}><Plus size={12}/></button>
              </div>
-             {renderRoutineList('afternoon')}
+             {isLoading ? (
+                 <>
+                     <RoutineSkeleton />
+                     <RoutineSkeleton />
+                 </>
+             ) : (
+                 <>
+                    {renderRoutineList('afternoon').length > 0 ? renderRoutineList('afternoon') : <EmptyRoutines type="afternoon" onAction={() => setAddingRoutineType('afternoon')} />}
+                 </>
+             )}
              {addingRoutineType === 'afternoon' && (
                  <div className="add-routine-form">
                      <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
@@ -579,7 +605,16 @@ const AppleCommandCenter = () => {
           </header>
 
           <div className="acc-grid">
-             {displayPipelines.map((p, index) => {
+             {isLoading ? (
+                 <>
+                    <PipelineSkeleton />
+                    <PipelineSkeleton />
+                    <PipelineSkeleton />
+                 </>
+             ) : displayPipelines.length === 0 ? (
+                 <EmptyPipelines onAction={openPipeModal} />
+             ) : (
+             displayPipelines.map((p, index) => {
                 const isFocused = focusedPipelineId === p.id;
                 const isHex = p.color && p.color.startsWith('#');
                                  return (
@@ -651,7 +686,7 @@ const AppleCommandCenter = () => {
                  </div>
               </div>
             );
-            })}
+            }))}
          </div>
        </main>
 
@@ -727,13 +762,13 @@ const AppleCommandCenter = () => {
                      <button 
                          className="status-option pending" 
                          style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f' }}
-                         onClick={() => {
-                             const calUrl = `http://${window.location.hostname}:8020/api/calendar/feed`;
-                             navigator.clipboard.writeText(calUrl);
-                             alert(t('settings.calendarCopied') + '\n\n' + t('settings.calendarInstructions'));
-                         }}
-                     >
-                         <Copy size={16}/> {t('settings.copyCalendarUrl')}
+                          onClick={() => {
+                              const calUrl = `http://${window.location.hostname}:8020/api/calendar/feed`;
+                              navigator.clipboard.writeText(calUrl);
+                              toast.success(t('settings.calendarCopied'));
+                          }}
+                      >
+                          <Copy size={16}/> {t('settings.copyCalendarUrl')}
                      </button>
                  </div>
 
@@ -939,7 +974,7 @@ const AppleCommandCenter = () => {
              </div>
          )}
 
-      {/* DELETE CONFIRMATION MODAL */}
+        {/* DELETE CONFIRMATION MODAL */}
       {deleteConfirm && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="glass-modal" onClick={e => e.stopPropagation()}>
@@ -978,6 +1013,7 @@ const AppleCommandCenter = () => {
         </div>
       )}
 
+      <ToastContainer />
     </div>
   );
 };

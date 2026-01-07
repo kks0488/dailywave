@@ -112,6 +112,83 @@ const LandingPage = () => {
                         Watch Demo <ArrowRight size={16} />
                     </button>
                 </div>
+
+                <div className="app-preview-container">
+                    <div className="browser-frame">
+                        <div className="browser-header">
+                            <div className="browser-dots">
+                                <span className="dot red"></span>
+                                <span className="dot yellow"></span>
+                                <span className="dot green"></span>
+                            </div>
+                            <div className="browser-url">
+                                <span>dailywave.app</span>
+                            </div>
+                        </div>
+                        <div className="browser-content">
+                            <div className="mock-sidebar">
+                                <div className="mock-logo">DailyWave</div>
+                                <div className="mock-date">01.08 Wed</div>
+                                <div className="mock-section-title">Morning</div>
+                                <div className="mock-routine done">
+                                    <div className="mock-check"></div>
+                                    <span>09:00 Check emails</span>
+                                </div>
+                                <div className="mock-routine">
+                                    <div className="mock-circle"></div>
+                                    <span>10:00 Team standup</span>
+                                </div>
+                                <div className="mock-section-title">Afternoon</div>
+                                <div className="mock-routine">
+                                    <div className="mock-circle evening"></div>
+                                    <span>14:00 Design review</span>
+                                </div>
+                            </div>
+                            <div className="mock-main">
+                                <div className="mock-header">
+                                    <span className="mock-title">Workflows</span>
+                                    <div className="mock-btn">+ New</div>
+                                </div>
+                                <div className="mock-cards">
+                                    <div className="mock-card">
+                                        <div className="mock-card-header">
+                                            <div className="mock-icon blue"></div>
+                                            <div className="mock-card-text">
+                                                <strong>Product Launch</strong>
+                                                <small>Q1 Campaign</small>
+                                            </div>
+                                        </div>
+                                        <div className="mock-steps">
+                                            <div className="mock-step done"></div>
+                                            <div className="mock-step-line"></div>
+                                            <div className="mock-step done"></div>
+                                            <div className="mock-step-line"></div>
+                                            <div className="mock-step active"></div>
+                                            <div className="mock-step-line dim"></div>
+                                            <div className="mock-step pending"></div>
+                                        </div>
+                                    </div>
+                                    <div className="mock-card">
+                                        <div className="mock-card-header">
+                                            <div className="mock-icon green"></div>
+                                            <div className="mock-card-text">
+                                                <strong>System Architecture</strong>
+                                                <small>Automation</small>
+                                            </div>
+                                        </div>
+                                        <div className="mock-steps">
+                                            <div className="mock-step done"></div>
+                                            <div className="mock-step-line"></div>
+                                            <div className="mock-step active"></div>
+                                            <div className="mock-step-line dim"></div>
+                                            <div className="mock-step pending"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </header>
 
             {/* Features Grid */}

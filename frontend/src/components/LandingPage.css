@@ -484,3 +484,278 @@
 
 /* Dark mode specific overrides if needed (mostly handled by variables) */
 [data-theme="dark"] .feature-card { border: 1px solid rgba(255,255,255,0.08); }
+
+.app-preview-container {
+    margin-top: 60px;
+    width: 100%;
+    max-width: 900px;
+    animation: fadeInUp 0.8s ease-out 0.8s backwards;
+    perspective: 1000px;
+}
+
+.browser-frame {
+    background: var(--bg-card);
+    border-radius: 16px;
+    box-shadow: 
+        0 40px 80px rgba(0,0,0,0.15),
+        0 0 0 1px var(--border-light);
+    overflow: hidden;
+    transform: rotateX(2deg);
+    transition: transform 0.3s ease;
+}
+
+.browser-frame:hover {
+    transform: rotateX(0deg) translateY(-4px);
+}
+
+.browser-header {
+    background: var(--input-bg-alt);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.browser-dots {
+    display: flex;
+    gap: 8px;
+}
+
+.browser-dots .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.browser-dots .dot.red { background: #ff5f56; }
+.browser-dots .dot.yellow { background: #ffbd2e; }
+.browser-dots .dot.green { background: #27c93f; }
+
+.browser-url {
+    flex: 1;
+    text-align: center;
+}
+
+.browser-url span {
+    background: var(--bg-card);
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.browser-content {
+    display: flex;
+    min-height: 360px;
+}
+
+.mock-sidebar {
+    width: 200px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-light);
+    padding: 20px 16px;
+}
+
+.mock-logo {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.mock-date {
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--input-bg-alt);
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 24px;
+}
+
+.mock-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 16px 0 8px;
+}
+
+.mock-routine {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: background 0.2s;
+}
+
+.mock-routine:hover {
+    background: var(--hover-bg);
+}
+
+.mock-routine span {
+    font-size: 12px;
+    color: var(--text-primary);
+}
+
+.mock-routine.done span {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+.mock-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    position: relative;
+}
+
+.mock-check::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 3px;
+    width: 4px;
+    height: 7px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.mock-circle {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #d1d1d6;
+}
+
+.mock-circle.evening {
+    border-color: #5856d6;
+}
+
+.mock-main {
+    flex: 1;
+    padding: 24px;
+    background: var(--bg-main);
+}
+
+.mock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.mock-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.mock-btn {
+    background: var(--text-primary);
+    color: var(--bg-card);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.mock-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.mock-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 8px var(--shadow-card);
+}
+
+.mock-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.mock-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+}
+
+.mock-icon.blue {
+    background: linear-gradient(135deg, #0A84FF, #5AC8FA);
+}
+
+.mock-icon.green {
+    background: linear-gradient(135deg, #30D158, #63E6E2);
+}
+
+.mock-card-text strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.mock-card-text small {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.mock-steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.mock-step {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--border-light);
+    flex-shrink: 0;
+}
+
+.mock-step.done {
+    background: #e5e5ea;
+    border-color: #e5e5ea;
+}
+
+.mock-step.active {
+    background: linear-gradient(135deg, #0A84FF, #5AC8FA);
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+}
+
+.mock-step.pending {
+    background: var(--bg-card);
+    border-color: var(--border-light);
+}
+
+.mock-step-line {
+    width: 24px;
+    height: 3px;
+    background: #e5e5ea;
+}
+
+.mock-step-line.dim {
+    background: var(--border-light);
+}
+
+@media (max-width: 768px) {
+    .app-preview-container {
+        display: none;
+    }
+}

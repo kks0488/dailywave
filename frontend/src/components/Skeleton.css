@@ -1,0 +1,130 @@
+.skeleton-card {
+  background: var(--bg-card);
+  border-radius: 24px;
+  padding: 28px 32px;
+  box-shadow: 0 4px 24px var(--shadow-card);
+  border: 1px solid var(--card-border);
+  height: 280px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.skeleton-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: var(--hover-bg);
+}
+
+.skeleton-text-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-title {
+  width: 120px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--hover-bg);
+}
+
+.skeleton-subtitle {
+  width: 180px;
+  height: 14px;
+  border-radius: 6px;
+  background: var(--hover-bg);
+}
+
+.skeleton-steps {
+  display: flex;
+  gap: 40px;
+  padding: 10px 0;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.skeleton-step {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--hover-bg);
+}
+
+/* Routine Skeleton */
+.skeleton-routine {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+}
+
+.skeleton-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--hover-bg);
+}
+
+.skeleton-time {
+  width: 40px;
+  height: 10px;
+  border-radius: 4px;
+  background: var(--hover-bg);
+}
+
+.skeleton-routine-title {
+  width: 100px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--hover-bg);
+}
+
+/* Shimmer Effect */
+.skeleton-card::after,
+.skeleton-routine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+}
+
+[data-theme="dark"] .skeleton-card::after,
+[data-theme="dark"] .skeleton-routine::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0)
+  );
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
