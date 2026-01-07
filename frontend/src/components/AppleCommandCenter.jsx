@@ -4,7 +4,7 @@ import { useCommandStore } from '../store/useCommandStore';
 import { toast } from '../store/useToastStore';
 import ToastContainer from './Toast';
 import { PipelineSkeleton, RoutineSkeleton } from './Skeleton';
-import { EmptyPipelines, EmptyRoutines } from './EmptyState';
+import { EmptyPipelines } from './EmptyState';
 import {
     Check, Plus, X, Settings, ChevronRight,
     MoreHorizontal, RotateCcw, Box, Briefcase,
@@ -494,7 +494,7 @@ const AppleCommandCenter = () => {
                  renderedItems.push(
                      <div key="timeline-marker" className="timeline-marker">
                          <div className="line"></div>
-                         <div className="badge">{t('status.now')} {currentTime}</div>
+                         <div className="badge">NOW</div>
                          <div className="line"></div>
                      </div>
                  );
@@ -530,7 +530,7 @@ const AppleCommandCenter = () => {
        <aside className="acc-sidebar">
          {/* Logo & Date */}
          <div className="sidebar-top">
-            <div className="acc-logo">DailyWave</div>
+             <div className="acc-logo">ROUTINE</div>
             <div className="date-badge">
                 {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', weekday: 'short' }).replace(/\//g, '.')}            </div>
          </div>
@@ -548,7 +548,7 @@ const AppleCommandCenter = () => {
                  </>
              ) : (
                  <>
-                    {renderRoutineList('morning').length > 0 ? renderRoutineList('morning') : <EmptyRoutines type="morning" onAction={() => setAddingRoutineType('morning')} />}
+                     {renderRoutineList('morning')}
                  </>
              )}
              {addingRoutineType === 'morning' && (
@@ -573,7 +573,7 @@ const AppleCommandCenter = () => {
                  </>
              ) : (
                  <>
-                    {renderRoutineList('afternoon').length > 0 ? renderRoutineList('afternoon') : <EmptyRoutines type="afternoon" onAction={() => setAddingRoutineType('afternoon')} />}
+                     {renderRoutineList('afternoon')}
                  </>
              )}
              {addingRoutineType === 'afternoon' && (
