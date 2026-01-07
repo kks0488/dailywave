@@ -6,12 +6,12 @@ import ToastContainer from './Toast';
 import { PipelineSkeleton, RoutineSkeleton } from './Skeleton';
 import { EmptyPipelines } from './EmptyState';
 import WhatsNext from './WhatsNext';
-import { getApiKey, setApiKey, hasApiKey } from '../lib/gemini';
+import { getApiKey, setApiKey, hasApiKey, enhanceWorkflow } from '../lib/gemini';
 import {
     Check, Plus, X, Settings, ChevronRight,
     MoreHorizontal, RotateCcw, Box, Briefcase,
     Zap, Link, Archive, Maximize2, Minimize2, Trash2, Palette,
-    Download, Upload, Save, Calendar, Copy, Sun, Moon, Sparkles
+    Download, Upload, Save, Calendar, Copy, Sun, Moon, Sparkles, Wand2
 } from 'lucide-react';
 import './AppleCommandCenter.css';
 
@@ -176,6 +176,60 @@ const AppleCommandCenter = () => {
   // Context Menu State
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, type: null, targetId: null, parentId: null });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const [aiEnhanceModal, setAiEnhanceModal] = useState({ open: false, pipelineId: null, loading: false, result: null });
+
+  const handleAiEnhance = async (pipelineId) => {
+    const pipeline = pipelines.find(p => p.id === pipelineId);
+    if (!pipeline) return;
+    
+    if (!hasApiKey()) {
+      toast.warning(t('ai.noApiKey', 'Set up your AI key in settings first'));
+      return;
+    }
+
+    setAiEnhanceModal({ open: true, pipelineId, loading: true, result: null });
+    
+    try {
+      const result = await enhanceWorkflow(pipeline.title, pipeline.steps || []);
+      setAiEnhanceModal(prev => ({ ...prev, loading: false, result }));
+    } catch (error) {
+      toast.error(`AI Error: ${error.message}`);
+      setAiEnhanceModal({ open: false, pipelineId: null, loading: false, result: null });
+    }
+  };
+
+  const handleApplySuggestion = (suggestion) => {
+    const { pipelineId } = aiEnhanceModal;
+    if (!pipelineId) return;
+
+    if (suggestion.type === 'insert_before') {
+      insertStep(pipelineId, suggestion.step, 0);
+    } else if (suggestion.type === 'insert_after') {
+      insertStep(pipelineId, suggestion.step, suggestion.afterIndex + 1);
+    } else if (suggestion.type === 'append') {
+      addStep(pipelineId, suggestion.step);
+    }
+    
+    toast.success(t('ai.stepAdded', `Added: ${suggestion.step}`));
+  };
+
+  const handleApplyAllSuggestions = () => {
+    const { pipelineId, result } = aiEnhanceModal;
+    if (!pipelineId || !result?.optimizedFlow) return;
+
+    const pipeline = pipelines.find(p => p.id === pipelineId);
+    if (!pipeline) return;
+
+    pipeline.steps?.forEach(step => deleteStep(pipelineId, step.id));
+    
+    result.optimizedFlow.forEach(stepName => {
+      addStep(pipelineId, stepName);
+    });
+
+    toast.success(t('ai.workflowOptimized', 'Workflow optimized!'));
+    setAiEnhanceModal({ open: false, pipelineId: null, loading: false, result: null });
+  };
 
   // --- DATA MANAGEMENT HANDLERS ---
   const handleExportData = () => {
@@ -685,6 +739,9 @@ const AppleCommandCenter = () => {
                          <button className="icon-action-btn" onClick={() => handleToggleFocus(p.id)} title={isFocused ? t('settings.minimize') : t('header.focusMode')}>
                              {isFocused ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
                          </button>
+                       <button className="icon-action-btn ai-btn" onClick={() => handleAiEnhance(p.id)} title={t('ai.enhance', 'AI Enhance')}>
+                             <Wand2 size={16} />
+                       </button>
                        <button className="icon-action-btn" onClick={() => handleHeaderAddStep(p.id)}>
                              <Plus size={16} />
                        </button>
@@ -1076,6 +1133,78 @@ const AppleCommandCenter = () => {
                 {t('modal.delete')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {aiEnhanceModal.open && (
+        <div className="modal-overlay" onClick={() => setAiEnhanceModal({ open: false, pipelineId: null, loading: false, result: null })}>
+          <div className="glass-modal ai-enhance-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Wand2 size={20} style={{ color: '#ff9500' }} />
+                <h3>{t('ai.enhanceTitle', 'AI Workflow Enhancement')}</h3>
+              </div>
+              <button className="close-btn" onClick={() => setAiEnhanceModal({ open: false, pipelineId: null, loading: false, result: null })}>
+                <X size={18}/>
+              </button>
+            </div>
+            
+            {aiEnhanceModal.loading ? (
+              <div className="ai-loading-state">
+                <div className="ai-loading-spinner"></div>
+                <p>{t('ai.analyzing', 'Analyzing your workflow...')}</p>
+              </div>
+            ) : aiEnhanceModal.result ? (
+              <div className="ai-enhance-content">
+                <div className="ai-analysis">
+                  <Sparkles size={16} style={{ color: '#ff9500' }} />
+                  <p>{aiEnhanceModal.result.analysis}</p>
+                </div>
+
+                {aiEnhanceModal.result.suggestions?.length > 0 && (
+                  <div className="ai-suggestions">
+                    <h4>{t('ai.suggestions', 'Suggested Steps')}</h4>
+                    {aiEnhanceModal.result.suggestions.map((suggestion, idx) => (
+                      <div key={idx} className={`ai-suggestion-item ${suggestion.type}`}>
+                        <div className="suggestion-info">
+                          <span className="suggestion-type">
+                            {suggestion.type === 'insert_before' ? '⬆️ ' : 
+                             suggestion.type === 'append' ? '⬇️ ' : '↔️ '}
+                            {suggestion.step}
+                          </span>
+                          <span className="suggestion-reason">{suggestion.reason}</span>
+                        </div>
+                        <button 
+                          className="apply-btn"
+                          onClick={() => handleApplySuggestion(suggestion)}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {aiEnhanceModal.result.optimizedFlow?.length > 0 && (
+                  <div className="ai-optimized-flow">
+                    <h4>{t('ai.optimizedFlow', 'Optimized Workflow')}</h4>
+                    <div className="optimized-steps">
+                      {aiEnhanceModal.result.optimizedFlow.map((step, idx) => (
+                        <div key={idx} className="optimized-step">
+                          <span className="step-num">{idx + 1}</span>
+                          <span className="step-name">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button className="apply-all-btn" onClick={handleApplyAllSuggestions}>
+                      <Wand2 size={16} />
+                      {t('ai.applyAll', 'Apply Optimized Flow')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       )}

@@ -404,3 +404,70 @@ Respond with ONLY this JSON array:
     { action: "Drink some water", type: "break", duration: 1, emoji: "💧" }
   ];
 };
+
+export const enhanceWorkflow = async (workflowTitle, currentSteps) => {
+  const stepsText = currentSteps.length > 0 
+    ? currentSteps.map((s, i) => `${i + 1}. ${s.name}`).join('\n')
+    : 'No steps yet';
+
+  const prompt = `You are DailyWave AI, a workflow optimization expert.
+
+WORKFLOW: "${workflowTitle}"
+CURRENT STEPS:
+${stepsText}
+
+Analyze this workflow and suggest improvements. Think about:
+- What steps might be missing between existing steps?
+- What preparation steps should come first?
+- What follow-up/completion steps might be needed at the end?
+- Are any steps too vague and need to be broken down?
+
+Respond with ONLY this JSON:
+{
+  "analysis": "Brief analysis of the workflow (max 30 words)",
+  "suggestions": [
+    {
+      "type": "insert_before",
+      "afterIndex": 0,
+      "step": "Step name",
+      "reason": "Why this step (max 15 words)"
+    },
+    {
+      "type": "insert_after", 
+      "afterIndex": 1,
+      "step": "Step name",
+      "reason": "Why this step (max 15 words)"
+    },
+    {
+      "type": "append",
+      "step": "Step name",
+      "reason": "Why this step (max 15 words)"
+    }
+  ],
+  "optimizedFlow": ["Step 1", "Step 2", "...complete optimized list"]
+}
+
+Rules:
+- Maximum 5 suggestions
+- type: "insert_before" (prepend to workflow), "insert_after" (insert after specific index), "append" (add to end)
+- afterIndex is 0-based (0 = first step, 1 = second step, etc.)
+- Keep step names concise (max 5 words each)
+- Focus on practical, actionable steps for ADHD users`;
+
+  const response = await askGemini(prompt);
+  
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (e) {
+    console.error('Failed to parse workflow enhancement:', e);
+  }
+  
+  return {
+    analysis: "Could not analyze workflow. Try again.",
+    suggestions: [],
+    optimizedFlow: currentSteps.map(s => s.name)
+  };
+};
