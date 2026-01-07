@@ -86,6 +86,27 @@
   "common": {
     "add": "추가"
   },
+  "ai": {
+    "whatsNext": "지금 뭐 할까?",
+    "setupTitle": "지금 뭐 할까?",
+    "setupDesc": "AI를 연결해서 맞춤형 태스크 추천을 받으세요",
+    "setupButton": "AI 설정하기",
+    "askAI": "AI에게 물어보기: 지금 뭐 해야 돼?",
+    "hint": "AI가 태스크와 에너지 레벨을 분석합니다",
+    "noApiKey": "설정에서 AI 키를 설정하세요",
+    "error": "AI 추천을 가져오지 못했습니다",
+    "timeUp": "시간 끝! 집중 잘했어요.",
+    "remaining": "남음",
+    "nextTask": "다음 태스크",
+    "apiKey": "AI API 키",
+    "apiKeyPlaceholder": "Gemini API 키를 입력하세요",
+    "apiKeyDesc": "Google AI Studio에서 무료 API 키를 받으세요",
+    "energy": {
+      "low": "저에너지",
+      "medium": "보통",
+      "high": "고에너지"
+    }
+  },
   "auth": {
     "signIn": "로그인",
     "subtitle": "여러 기기에서 동기화하려면 로그인하세요",

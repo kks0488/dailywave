@@ -86,6 +86,27 @@
   "common": {
     "add": "Add"
   },
+  "ai": {
+    "whatsNext": "What's Next?",
+    "setupTitle": "What's Next?",
+    "setupDesc": "Connect AI to get personalized task recommendations",
+    "setupButton": "Set Up AI",
+    "askAI": "Ask AI: What should I do now?",
+    "hint": "AI will analyze your tasks and energy level",
+    "noApiKey": "Set up your AI key in settings",
+    "error": "Failed to get AI recommendation",
+    "timeUp": "Time is up! Great focus session.",
+    "remaining": "remaining",
+    "nextTask": "Get Next Task",
+    "apiKey": "AI API Key",
+    "apiKeyPlaceholder": "Enter your Gemini API key",
+    "apiKeyDesc": "Get your free API key from Google AI Studio",
+    "energy": {
+      "low": "Low Energy",
+      "medium": "Medium Energy", 
+      "high": "High Energy"
+    }
+  },
   "auth": {
     "signIn": "Sign In",
     "subtitle": "Sign in to sync across devices",

@@ -5,11 +5,13 @@ import { toast } from '../store/useToastStore';
 import ToastContainer from './Toast';
 import { PipelineSkeleton, RoutineSkeleton } from './Skeleton';
 import { EmptyPipelines } from './EmptyState';
+import WhatsNext from './WhatsNext';
+import { getApiKey, setApiKey, hasApiKey } from '../lib/gemini';
 import {
     Check, Plus, X, Settings, ChevronRight,
     MoreHorizontal, RotateCcw, Box, Briefcase,
     Zap, Link, Archive, Maximize2, Minimize2, Trash2, Palette,
-    Download, Upload, Save, Calendar, Copy, Sun, Moon
+    Download, Upload, Save, Calendar, Copy, Sun, Moon, Sparkles
 } from 'lucide-react';
 import './AppleCommandCenter.css';
 
@@ -53,6 +55,7 @@ const AppleCommandCenter = () => {
   // LOCAL UI STATE
   const [editingStep, setEditingStep] = useState(null); // { pipelineId, step }
   const [isLoading, setIsLoading] = useState(true);
+  const [aiApiKey, setAiApiKey] = useState(() => getApiKey());
 
   // --- PERSISTENCE: LOAD & SAVE ---
   useEffect(() => {
@@ -605,6 +608,13 @@ const AppleCommandCenter = () => {
           </header>
 
           <div className="acc-grid">
+             {!isLoading && !focusedPipelineId && (
+                 <WhatsNext 
+                     pipelines={pipelines} 
+                     routines={routines} 
+                     onOpenSettings={() => setIsSettingsOpen(true)}
+                 />
+             )}
              {isLoading ? (
                  <>
                     <PipelineSkeleton />
@@ -713,22 +723,46 @@ const AppleCommandCenter = () => {
                  </div>
                  
                  <div className="memo-section">
-                      <label>{t('settings.language')}</label>
-                      <select
-                         value={i18n.language} 
-                         onChange={(e) => i18n.changeLanguage(e.target.value)}
-                         className="glass-input"
-                         style={{ width: '100%', marginTop: '8px' }}
-                     >
-                         <option value="en">English</option>
-                         <option value="ko">한국어</option>
-                         <option value="ja">日本語</option>
-                         <option value="zh">中文</option>
-                     </select>
-                 </div>
+                       <label>{t('settings.language')}</label>
+                       <select
+                          value={i18n.language} 
+                          onChange={(e) => i18n.changeLanguage(e.target.value)}
+                          className="glass-input"
+                          style={{ width: '100%', marginTop: '8px' }}
+                      >
+                          <option value="en">English</option>
+                          <option value="ko">한국어</option>
+                          <option value="ja">日本語</option>
+                          <option value="zh">中文</option>
+                      </select>
+                  </div>
 
-                 <div className="memo-section">
-                     <label>{t('settings.dataManagement')}</label>
+                  <div className="memo-section">
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Sparkles size={14} color="#ff9500" />
+                          {t('ai.apiKey')}
+                      </label>
+                      <input 
+                          type="password"
+                          className="glass-input"
+                          placeholder={t('ai.apiKeyPlaceholder')}
+                          value={aiApiKey}
+                          onChange={(e) => {
+                              setAiApiKey(e.target.value);
+                              setApiKey(e.target.value);
+                          }}
+                          style={{ width: '100%', marginTop: '8px' }}
+                      />
+                      <p style={{ fontSize: '11px', color: '#86868b', marginTop: '6px' }}>
+                          {t('ai.apiKeyDesc')} →{' '}
+                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style={{ color: '#0a84ff' }}>
+                              aistudio.google.com
+                          </a>
+                      </p>
+                  </div>
+
+                  <div className="memo-section">
+                      <label>{t('settings.dataManagement')}</label>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
                          <button 
                              className="status-option pending" 

@@ -18,7 +18,17 @@
 
 > **Transform your daily chaos into a flowing rhythm**
 
-DailyWave is a modern, pipeline-based workflow and routine management application designed with an Apple-style minimalist aesthetic. It helps you visualize your daily tasks as a continuous flow, ensuring you stay productive without feeling overwhelmed.
+DailyWave is an **ADHD-friendly** workflow and routine management app designed for people who struggle with **time blindness** and **decision paralysis**. Unlike typical todo apps that overwhelm you with endless lists, DailyWave uses AI to answer one simple question: **"What should I do now?"**
+
+### Why DailyWave?
+
+| ADHD Problem | How DailyWave Helps |
+|--------------|---------------------|
+| **Time Blindness** | Visual timer with gentle countdown |
+| **Decision Paralysis** | AI recommends ONE task based on context |
+| **Overwhelm** | Focus mode shows only what matters |
+| **Starting is Hard** | 2-second task launch with encouragement |
+| **Guilt Spiral** | No red warnings, just gentle guidance |
 
 ---
 
@@ -83,7 +93,13 @@ If you prefer to run the components separately for development, follow these ste
    cd frontend
    npm install
    ```
-2. **Start the development server**:
+2. **Configure AI (Optional)**:
+   ```bash
+   # Copy .env.example to .env and add your Gemini API key
+   cp .env.example .env
+   # Get your free API key from https://aistudio.google.com/apikey
+   ```
+3. **Start the development server**:
    ```bash
    # Port 3020 is used to avoid common conflicts
    npm run dev -- --port 3020
@@ -109,13 +125,23 @@ For production environments without Docker, you can use PM2 to manage the proces
 
 ## ✨ Key Features
 
-- 🔄 **Pipeline-Based Workflows**: Visualize your tasks as a logical flow. Chain tasks together where the output of one can become the input for another, creating a seamless automation pipeline.
-- 📅 **Intelligent Daily Routines**: Beyond simple todos, DailyWave handles recurring routines with ease. Set your morning rhythm once and let the app guide you through it every day.
-- 🗓️ **Live Calendar Sync**: Stop context switching. DailyWave generates a real-time `.ics` feed that you can subscribe to in Apple Calendar, Google Calendar, or Outlook.
-- 💾 **Robust State Persistence**: Built with reliability in mind. The backend ensures your workflow states are persisted across sessions, so you can pick up exactly where you left off.
-- 🌐 **Global Native Support**: A first-class experience for international users with full localization for English, Korean, Japanese, and Chinese.
-- 🍎 **Apple-Style Aesthetics**: Experience a UI that feels native to your workspace. Featuring frosted glass effects, smooth transitions, and a minimalist layout that minimizes cognitive load.
-- ⚡ **High Performance**: Built on FastAPI and Vite, the application is lightning-fast, ensuring your productivity tools never slow you down.
+### 🧠 ADHD-Focused
+- 🎯 **"What's Next?" AI**: Powered by Gemini AI, analyzes your tasks and energy level to recommend ONE specific task to focus on right now
+- ⏱️ **Time Buddy**: Visual countdown timer with progress ring - helps combat time blindness with satisfying animations
+- 🔋 **Energy Levels**: Set your current energy (low/medium/high) and get appropriate task recommendations
+- 💚 **Zero Guilt Design**: No red overdue warnings, just gentle encouragement
+
+### 📋 Workflow Management
+- 🔄 **Pipeline-Based Workflows**: Visualize your tasks as a logical flow with beautiful step indicators
+- 📅 **Intelligent Daily Routines**: Morning and afternoon routines with timeline markers
+- 🗓️ **Live Calendar Sync**: Real-time `.ics` feed for Apple Calendar, Google Calendar, or Outlook
+- 💾 **Robust Persistence**: Never lose your progress - auto-saves to backend
+
+### 🎨 Design & Experience
+- 🍎 **Apple-Style Aesthetics**: Frosted glass effects, smooth transitions, minimalist layout
+- 🌐 **4 Languages**: English, Korean, Japanese, Chinese
+- 🌙 **Dark Mode**: Easy on the eyes for late-night productivity
+- ⚡ **Lightning Fast**: Built on FastAPI + Vite for instant responsiveness
 
 ## 📱 Mobile Experience
 
@@ -148,10 +174,14 @@ The desktop version is just the beginning. We are currently developing native mo
 - [x] Core Pipeline Engine
 - [x] iCalendar Feed Support
 - [x] Apple-style UI Implementation
+- [x] **AI-powered "What's Next?" Recommendations** (Gemini AI)
+- [x] **Time Buddy Timer with Energy Levels**
+- [x] **ADHD-friendly Design System**
 - [ ] Drag-and-drop Workflow Builder
 - [ ] Third-party Integrations (Slack, GitHub, Notion)
 - [ ] Native Mobile Applications
-- [ ] AI-powered Routine Suggestions
+- [ ] Body Double Virtual Co-working Room
+- [ ] Voice Input for Quick Capture
 
 ## 📡 API Overview
 

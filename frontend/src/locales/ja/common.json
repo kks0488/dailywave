@@ -86,6 +86,27 @@
   "common": {
     "add": "追加"
   },
+  "ai": {
+    "whatsNext": "次は何する?",
+    "setupTitle": "次は何する?",
+    "setupDesc": "AIを接続してパーソナライズされたタスク推薦を受け取りましょう",
+    "setupButton": "AIを設定",
+    "askAI": "AIに聞く：今何をすべき?",
+    "hint": "AIがタスクとエネルギーレベルを分析します",
+    "noApiKey": "設定でAIキーを設定してください",
+    "error": "AI推薦の取得に失敗しました",
+    "timeUp": "時間終了！集中できましたね。",
+    "remaining": "残り",
+    "nextTask": "次のタスク",
+    "apiKey": "AI APIキー",
+    "apiKeyPlaceholder": "Gemini APIキーを入力",
+    "apiKeyDesc": "Google AI Studioで無料のAPIキーを取得してください",
+    "energy": {
+      "low": "低エネルギー",
+      "medium": "普通",
+      "high": "高エネルギー"
+    }
+  },
   "auth": {
     "signIn": "サインイン",
     "subtitle": "デバイス間で同期するにはサインインしてください",

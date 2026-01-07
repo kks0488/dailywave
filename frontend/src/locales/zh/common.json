@@ -86,6 +86,27 @@
   "common": {
     "add": "添加"
   },
+  "ai": {
+    "whatsNext": "接下来做什么?",
+    "setupTitle": "接下来做什么?",
+    "setupDesc": "连接AI获取个性化任务推荐",
+    "setupButton": "设置AI",
+    "askAI": "问AI：我现在应该做什么?",
+    "hint": "AI将分析您的任务和精力水平",
+    "noApiKey": "请在设置中配置AI密钥",
+    "error": "获取AI推荐失败",
+    "timeUp": "时间到！专注得很好。",
+    "remaining": "剩余",
+    "nextTask": "下一个任务",
+    "apiKey": "AI API密钥",
+    "apiKeyPlaceholder": "输入您的Gemini API密钥",
+    "apiKeyDesc": "从Google AI Studio获取免费API密钥",
+    "energy": {
+      "low": "低能量",
+      "medium": "中等",
+      "high": "高能量"
+    }
+  },
   "auth": {
     "signIn": "登录",
     "subtitle": "登录以在设备间同步",
