@@ -15,8 +15,10 @@ export const hasApiKey = () => {
 export const askGemini = async (prompt, context = {}) => {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error('API key not configured');
+    throw new Error('API key not configured. Please set your Gemini API key in Settings.');
   }
+  
+  console.log('Using API key:', apiKey.substring(0, 10) + '...');
 
   const systemPrompt = `You are DailyWave AI, an ADHD-friendly productivity assistant. 
 Your role is to help users with time blindness and decision paralysis.
@@ -43,8 +45,15 @@ Current date: ${new Date().toLocaleDateString()}`;
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get AI response');
+    let errorMessage = `HTTP ${response.status}`;
+    try {
+      const error = await response.json();
+      errorMessage = error.error?.message || error.message || JSON.stringify(error);
+    } catch (e) {
+      errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    }
+    console.error('Gemini API Error:', errorMessage);
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();

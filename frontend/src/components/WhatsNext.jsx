@@ -25,15 +25,19 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings }) => {
 
     setIsLoading(true);
     try {
+      console.log('Fetching AI recommendation...');
       const result = await getWhatsNext(pipelines, routines, energy);
+      console.log('AI result:', result);
       if (result) {
         setRecommendation(result);
         setTimeLeft(result.estimatedMinutes * 60);
         setTotalTime(result.estimatedMinutes * 60);
+      } else {
+        toast('warning', 'AI returned empty response. Try again.');
       }
     } catch (error) {
       console.error('AI recommendation failed:', error);
-      toast('error', error.message || t('ai.error', 'Failed to get AI recommendation'));
+      toast('error', `AI Error: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
