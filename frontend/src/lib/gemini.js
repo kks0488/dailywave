@@ -138,36 +138,45 @@ Respond in this exact JSON format only, no other text:
 };
 
 export const parseAICommand = async (userInput, pipelines, routines) => {
-  const prompt = `Parse the user's natural language command and return a structured action.
+  const workflowNames = pipelines.map(p => p.title).join(', ') || 'None';
+  
+  const prompt = `You are a JSON-only parser. Parse this command and return ONLY valid JSON.
 
-User command: "${userInput}"
+INPUT: "${userInput}"
+WORKFLOWS: ${workflowNames}
 
-Current workflows: ${pipelines.map(p => p.title).join(', ') || 'None'}
-Current routines: ${routines.length} items
+RULES:
+- Output ONLY JSON, no explanation, no markdown
+- Extract the task/action from the input
+- Match workflow names if mentioned (fuzzy match OK)
+- Time format: HH:MM (24h)
 
-Respond with ONLY a JSON object:
-{
-  "action": "add_routine" | "add_workflow_step" | "create_workflow" | "unknown",
-  "data": {
-    "title": "task name extracted from command",
-    "time": "HH:MM format if mentioned, otherwise null",
-    "workflow": "workflow name if mentioned, otherwise null"
-  },
-  "confirmation": "A short confirmation message in the same language as the user input"
-}`;
+OUTPUT FORMAT (strict JSON):
+{"action":"add_routine","data":{"title":"task","time":"09:00"},"confirmation":"확인 메시지"}
+{"action":"add_workflow_step","data":{"title":"step","workflow":"workflow name"},"confirmation":"확인 메시지"}
+{"action":"unknown","data":{},"confirmation":"이해하지 못했습니다"}
+
+Examples:
+Input: "9시에 운동 추가해줘" → {"action":"add_routine","data":{"title":"운동","time":"09:00"},"confirmation":"9시에 운동을 추가했습니다"}
+Input: "마케팅 워크플로우에 보고서 작성 넣어줘" → {"action":"add_workflow_step","data":{"title":"보고서 작성","workflow":"마케팅"},"confirmation":"마케팅에 보고서 작성을 추가했습니다"}
+
+NOW PARSE AND OUTPUT JSON ONLY:`;
 
   const response = await askGemini(prompt);
+  console.log('AI command raw response:', response);
   
   try {
-    const jsonMatch = response.match(/\{[\s\S]*?\}/);
+    const jsonMatch = response.match(/\{[^{}]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log('Parsed command:', parsed);
+      return parsed;
     }
   } catch (e) {
-    console.error('Failed to parse command:', e);
+    console.error('Failed to parse command:', e, response);
   }
   
-  return { action: 'unknown', data: {}, confirmation: 'Sorry, I didn\'t understand that.' };
+  return { action: 'unknown', data: {}, confirmation: '명령을 이해하지 못했습니다. 다시 시도해주세요.' };
 };
 
 export const estimateTaskTime = async (taskName, taskMemo = '') => {
