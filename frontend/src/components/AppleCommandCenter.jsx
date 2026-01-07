@@ -628,13 +628,26 @@ const AppleCommandCenter = () => {
           </header>
 
           <div className="acc-grid">
-             {!isLoading && !focusedPipelineId && (
-                 <WhatsNext 
-                     pipelines={pipelines} 
-                     routines={routines} 
-                     onOpenSettings={() => setIsSettingsOpen(true)}
-                 />
-             )}
+{!isLoading && !focusedPipelineId && (
+                  <WhatsNext 
+                      pipelines={pipelines} 
+                      routines={routines} 
+                      onOpenSettings={() => setIsSettingsOpen(true)}
+                      onAddRoutine={(title, time) => {
+                          const hour = parseInt(time.split(':')[0], 10);
+                          const type = hour >= 12 ? 'afternoon' : 'morning';
+                          addRoutine({ title, time, type });
+                      }}
+                      onAddStep={(title, workflowName) => {
+                          const pipeline = pipelines.find(p => 
+                              p.title.toLowerCase().includes(workflowName.toLowerCase())
+                          );
+                          if (pipeline) {
+                              addStep(pipeline.id, title);
+                          }
+                      }}
+                  />
+              )}
              {isLoading ? (
                  <>
                     <PipelineSkeleton />

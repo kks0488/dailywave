@@ -105,7 +105,9 @@
       "low": "低能量",
       "medium": "中等",
       "high": "高能量"
-    }
+    },
+    "chatToggle": "AI命令",
+    "chatPlaceholder": "例如：\"早上9点添加运动到日程\""
   },
   "auth": {
     "signIn": "登录",

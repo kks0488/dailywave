@@ -105,7 +105,9 @@
       "low": "低エネルギー",
       "medium": "普通",
       "high": "高エネルギー"
-    }
+    },
+    "chatToggle": "AIコマンド",
+    "chatPlaceholder": "例：「9時に運動をルーティンに追加して」"
   },
   "auth": {
     "signIn": "サインイン",

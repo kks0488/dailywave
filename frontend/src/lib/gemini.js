@@ -106,17 +106,68 @@ Respond in this exact JSON format only, no other text:
 }`;
 
   const response = await askGemini(prompt, { timeOfDay, currentEnergy });
+  console.log('Raw AI response:', response);
   
   try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.match(/\{[\s\S]*?\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log('Parsed AI response:', parsed);
+      return parsed;
+    }
+    console.warn('No JSON found in response');
+  } catch (e) {
+    console.error('Failed to parse AI response:', e, response);
+  }
+  
+  if (activeTasks.length > 0) {
+    return {
+      task: activeTasks[0].task,
+      reason: "Starting with your first active task",
+      estimatedMinutes: 25,
+      encouragement: "You got this! Just start."
+    };
+  }
+  
+  return {
+    task: "Take a 5-minute break",
+    reason: "No pending tasks found",
+    estimatedMinutes: 5,
+    encouragement: "Rest is productive too!"
+  };
+};
+
+export const parseAICommand = async (userInput, pipelines, routines) => {
+  const prompt = `Parse the user's natural language command and return a structured action.
+
+User command: "${userInput}"
+
+Current workflows: ${pipelines.map(p => p.title).join(', ') || 'None'}
+Current routines: ${routines.length} items
+
+Respond with ONLY a JSON object:
+{
+  "action": "add_routine" | "add_workflow_step" | "create_workflow" | "unknown",
+  "data": {
+    "title": "task name extracted from command",
+    "time": "HH:MM format if mentioned, otherwise null",
+    "workflow": "workflow name if mentioned, otherwise null"
+  },
+  "confirmation": "A short confirmation message in the same language as the user input"
+}`;
+
+  const response = await askGemini(prompt);
+  
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*?\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
   } catch (e) {
-    console.error('Failed to parse AI response:', e);
+    console.error('Failed to parse command:', e);
   }
   
-  return null;
+  return { action: 'unknown', data: {}, confirmation: 'Sorry, I didn\'t understand that.' };
 };
 
 export const estimateTaskTime = async (taskName, taskMemo = '') => {

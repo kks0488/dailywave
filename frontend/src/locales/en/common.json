@@ -105,7 +105,9 @@
       "low": "Low Energy",
       "medium": "Medium Energy", 
       "high": "High Energy"
-    }
+    },
+    "chatToggle": "AI Command",
+    "chatPlaceholder": "e.g., \"Add exercise to routine at 9am\""
   },
   "auth": {
     "signIn": "Sign In",

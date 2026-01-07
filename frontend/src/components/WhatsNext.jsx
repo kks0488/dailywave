@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Play, Pause, RotateCcw, ChevronRight, Zap, Battery, BatteryLow, BatteryMedium } from 'lucide-react';
+import { Sparkles, Play, Pause, RotateCcw, ChevronRight, Zap, BatteryLow, BatteryMedium, Send, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getWhatsNext, hasApiKey } from '../lib/gemini';
+import { getWhatsNext, hasApiKey, parseAICommand } from '../lib/gemini';
 import { useToastStore } from '../store/useToastStore';
 import './WhatsNext.css';
 
-const WhatsNext = ({ pipelines, routines, onOpenSettings }) => {
+const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddStep }) => {
   const { t } = useTranslation();
   const toast = useToastStore(state => state.addToast);
   
@@ -15,7 +15,37 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings }) => {
   const [timerRunning, setTimerRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMode, setChatMode] = useState(false);
   const timerRef = useRef(null);
+
+  const handleChatSubmit = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      const result = await parseAICommand(chatInput, pipelines, routines);
+      console.log('AI command result:', result);
+      
+      if (result.action === 'add_routine' && onAddRoutine) {
+        onAddRoutine(result.data.title, result.data.time || '09:00');
+        toast('success', result.confirmation);
+      } else if (result.action === 'add_workflow_step' && onAddStep) {
+        onAddStep(result.data.title, result.data.workflow);
+        toast('success', result.confirmation);
+      } else if (result.action === 'unknown') {
+        toast('warning', result.confirmation);
+      } else {
+        toast('info', result.confirmation);
+      }
+      setChatInput('');
+    } catch (error) {
+      toast('error', `AI Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchRecommendation = async () => {
     if (!hasApiKey()) {
@@ -182,6 +212,32 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings }) => {
           <p className="hint">{t('ai.hint', 'AI will analyze your tasks and energy level')}</p>
         </div>
       )}
+
+      <div className="ai-chat-section">
+        <button 
+          className={`chat-toggle ${chatMode ? 'active' : ''}`}
+          onClick={() => setChatMode(!chatMode)}
+        >
+          <MessageCircle size={14} />
+          {t('ai.chatToggle', 'AI Command')}
+        </button>
+        
+        {chatMode && (
+          <form onSubmit={handleChatSubmit} className="chat-form">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder={t('ai.chatPlaceholder', 'e.g., "Add exercise to routine at 9am"')}
+              className="chat-input"
+              disabled={isLoading}
+            />
+            <button type="submit" className="chat-send" disabled={isLoading || !chatInput.trim()}>
+              <Send size={16} />
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 };

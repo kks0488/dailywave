@@ -105,7 +105,9 @@
       "low": "저에너지",
       "medium": "보통",
       "high": "고에너지"
-    }
+    },
+    "chatToggle": "AI 명령",
+    "chatPlaceholder": "예: \"9시에 운동 루틴 추가해줘\""
   },
   "auth": {
     "signIn": "로그인",
