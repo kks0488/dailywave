@@ -494,7 +494,7 @@ const AppleCommandCenter = () => {
                  renderedItems.push(
                      <div key="timeline-marker" className="timeline-marker">
                          <div className="line"></div>
-                         <div className="badge">Now {currentTime}</div>
+                         <div className="badge">{t('status.now')} {currentTime}</div>
                          <div className="line"></div>
                      </div>
                  );
@@ -597,7 +597,7 @@ const AppleCommandCenter = () => {
                 <button className="create-pipe-btn" onClick={openPipeModal}>
                     <Plus size={14}/> {t('header.newWorkflow')}
                 </button>
-                <button className="acc-icon-btn" onClick={toggleTheme} title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
+                <button className="acc-icon-btn" onClick={toggleTheme} title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}>
                     {theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
                 </button>
                 <button className="acc-icon-btn" onClick={() => setIsSettingsOpen(true)}><Settings size={18}/></button>
@@ -639,7 +639,7 @@ const AppleCommandCenter = () => {
                       </div>
 
                      <div className="card-actions">
-                         <button className="icon-action-btn" onClick={() => handleToggleFocus(p.id)} title={isFocused ? "Minimize" : t('header.focusMode')}>
+                         <button className="icon-action-btn" onClick={() => handleToggleFocus(p.id)} title={isFocused ? t('settings.minimize') : t('header.focusMode')}>
                              {isFocused ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
                          </button>
                        <button className="icon-action-btn" onClick={() => handleHeaderAddStep(p.id)}>
@@ -713,8 +713,8 @@ const AppleCommandCenter = () => {
                  </div>
                  
                  <div className="memo-section">
-                     <label>Language</label>
-                     <select 
+                      <label>{t('settings.language')}</label>
+                      <select
                          value={i18n.language} 
                          onChange={(e) => i18n.changeLanguage(e.target.value)}
                          className="glass-input"
@@ -920,7 +920,7 @@ const AppleCommandCenter = () => {
                                   onClick={() => setNewPipeColor(c)}
                                 />
                             ))}
-                            <label className="custom-color-label" title="Custom Color">
+                            <label className="custom-color-label" title={t('settings.customColor')}>
                                 <input 
                                   type="color" 
                                   className="hidden-color-input"

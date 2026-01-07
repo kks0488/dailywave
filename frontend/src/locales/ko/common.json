@@ -40,13 +40,18 @@
     "active": "진행 중",
     "pending": "대기",
     "locked": "잠김",
-    "now": "Now"
+    "now": "지금"
   },
   "routine": {
     "deleteConfirm": "이 루틴을 삭제하시겠습니까?"
   },
   "settings": {
     "title": "설정 및 데이터",
+    "language": "언어",
+    "darkMode": "다크 모드로 전환",
+    "lightMode": "라이트 모드로 전환",
+    "minimize": "최소화",
+    "customColor": "사용자 지정 색상",
     "dataManagement": "데이터 관리",
     "backup": "데이터 백업 (다운로드)",
     "restore": "데이터 복원 (파일 선택)",
@@ -71,6 +76,15 @@
   "time": {
     "morning": "오전",
     "afternoon": "오후"
+  },
+  "empty": {
+    "pipelinesTitle": "워크플로우가 없습니다",
+    "pipelinesDesc": "첫 워크플로우를 만들어 일일 진행 상황을 추적하세요.",
+    "morningDesc": "오전 루틴이 없습니다.",
+    "afternoonDesc": "오후 루틴이 없습니다."
+  },
+  "common": {
+    "add": "추가"
   },
   "auth": {
     "signIn": "로그인",

@@ -47,6 +47,11 @@
   },
   "settings": {
     "title": "Settings & Data",
+    "language": "Language",
+    "darkMode": "Switch to Dark Mode",
+    "lightMode": "Switch to Light Mode",
+    "minimize": "Minimize",
+    "customColor": "Custom Color",
     "dataManagement": "Data Management",
     "backup": "Backup Data (Download)",
     "restore": "Restore Data (Select File)",
@@ -71,6 +76,15 @@
   "time": {
     "morning": "AM",
     "afternoon": "PM"
+  },
+  "empty": {
+    "pipelinesTitle": "No Workflows Yet",
+    "pipelinesDesc": "Create your first workflow to track your daily progress.",
+    "morningDesc": "No morning routines yet.",
+    "afternoonDesc": "No afternoon routines yet."
+  },
+  "common": {
+    "add": "Add"
   },
   "auth": {
     "signIn": "Sign In",

@@ -40,13 +40,18 @@
     "active": "進行中",
     "pending": "待機",
     "locked": "ロック",
-    "now": "Now"
+    "now": "現在"
   },
   "routine": {
     "deleteConfirm": "このルーティンを削除しますか？"
   },
   "settings": {
     "title": "設定とデータ",
+    "language": "言語",
+    "darkMode": "ダークモードに切替",
+    "lightMode": "ライトモードに切替",
+    "minimize": "最小化",
+    "customColor": "カスタムカラー",
     "dataManagement": "データ管理",
     "backup": "データバックアップ（ダウンロード）",
     "restore": "データ復元（ファイル選択）",
@@ -71,6 +76,15 @@
   "time": {
     "morning": "午前",
     "afternoon": "午後"
+  },
+  "empty": {
+    "pipelinesTitle": "ワークフローがありません",
+    "pipelinesDesc": "最初のワークフローを作成して、毎日の進捗を追跡しましょう。",
+    "morningDesc": "午前のルーティンがありません。",
+    "afternoonDesc": "午後のルーティンがありません。"
+  },
+  "common": {
+    "add": "追加"
   },
   "auth": {
     "signIn": "サインイン",

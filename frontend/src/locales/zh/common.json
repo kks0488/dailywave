@@ -40,13 +40,18 @@
     "active": "进行中",
     "pending": "待处理",
     "locked": "锁定",
-    "now": "Now"
+    "now": "当前"
   },
   "routine": {
     "deleteConfirm": "确定要删除此日程吗？"
   },
   "settings": {
     "title": "设置与数据",
+    "language": "语言",
+    "darkMode": "切换到深色模式",
+    "lightMode": "切换到浅色模式",
+    "minimize": "最小化",
+    "customColor": "自定义颜色",
     "dataManagement": "数据管理",
     "backup": "备份数据（下载）",
     "restore": "恢复数据（选择文件）",
@@ -71,6 +76,15 @@
   "time": {
     "morning": "上午",
     "afternoon": "下午"
+  },
+  "empty": {
+    "pipelinesTitle": "暂无工作流",
+    "pipelinesDesc": "创建您的第一个工作流来追踪每日进度。",
+    "morningDesc": "暂无上午日程。",
+    "afternoonDesc": "暂无下午日程。"
+  },
+  "common": {
+    "add": "添加"
   },
   "auth": {
     "signIn": "登录",
