@@ -58,20 +58,37 @@ const AppleCommandCenter = () => {
   const [aiApiKey, setAiApiKey] = useState(() => getApiKey());
 
   // --- PERSISTENCE: LOAD & SAVE ---
+  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const backendUrl = isLocalDev ? `http://${window.location.hostname}:8020` : null;
+
   useEffect(() => {
-    // 1. Load from Backend
-    fetch(`http://${window.location.hostname}:8020/api/persistence/load`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 'loaded' && data.data) {
-                hydrate(data.data);
-                console.log("Loaded state from backend file.");
-            }
-        })
-        .catch(err => console.error("Failed to load persistence:", err))
-        .finally(() => {
-            setTimeout(() => setIsLoading(false), 500);
-        });
+    // 1. Load from Backend (local dev) or localStorage (production)
+    if (backendUrl) {
+      fetch(`${backendUrl}/api/persistence/load`)
+          .then(res => res.json())
+          .then(data => {
+              if (data.status === 'loaded' && data.data) {
+                  hydrate(data.data);
+                  console.log("Loaded state from backend file.");
+              }
+          })
+          .catch(err => {
+              console.log("Backend not available, using localStorage");
+              const saved = localStorage.getItem('dailywave_state');
+              if (saved) {
+                  try { hydrate(JSON.parse(saved)); } catch(e) {}
+              }
+          })
+          .finally(() => {
+              setTimeout(() => setIsLoading(false), 500);
+          });
+    } else {
+      const saved = localStorage.getItem('dailywave_state');
+      if (saved) {
+          try { hydrate(JSON.parse(saved)); } catch(e) {}
+      }
+      setTimeout(() => setIsLoading(false), 300);
+    }
 
     // 2. Auto-Save Subscription
     let timeoutId;
@@ -81,11 +98,14 @@ const AppleCommandCenter = () => {
             routines: state.routines,
             sopLibrary: state.sopLibrary
         };
-        fetch(`http://${window.location.hostname}:8020/api/persistence/save`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(e => console.error("Save failed", e));
+        localStorage.setItem('dailywave_state', JSON.stringify(payload));
+        if (backendUrl) {
+          fetch(`${backendUrl}/api/persistence/save`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          }).catch(() => {});
+        }
     };
 
     const unsubscribe = useCommandStore.subscribe((state) => {
