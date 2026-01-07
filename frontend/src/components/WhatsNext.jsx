@@ -33,7 +33,7 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings }) => {
       }
     } catch (error) {
       console.error('AI recommendation failed:', error);
-      toast('error', t('ai.error', 'Failed to get AI recommendation'));
+      toast('error', error.message || t('ai.error', 'Failed to get AI recommendation'));
     } finally {
       setIsLoading(false);
     }
