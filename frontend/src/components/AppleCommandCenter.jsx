@@ -7,7 +7,6 @@ import { PipelineSkeleton, RoutineSkeleton } from './Skeleton';
 import { EmptyPipelines } from './EmptyState';
 import WhatsNext from './WhatsNext';
 import { getApiKey, setApiKey, hasApiKey, enhanceWorkflow } from '../lib/gemini';
-import { getDemoData } from '../lib/demoData';
 import {
     Check, Plus, X, Settings, ChevronRight,
     MoreHorizontal, RotateCcw, Box, Briefcase,
@@ -26,10 +25,6 @@ import './AppleCommandCenter.css';
 
 const AppleCommandCenter = () => {
   const { t, i18n } = useTranslation();
-  const searchParams = new URLSearchParams(window.location.search);
-  const demoParam = searchParams.get('demo');
-  const isDemoMode = demoParam === 'reset' || demoParam === '1' || demoParam === 'true';
-  const demoLangParam = searchParams.get('lang');
   const backendUrl = import.meta.env.VITE_API_URL || '';
 
   const {
@@ -77,18 +72,6 @@ const AppleCommandCenter = () => {
   };
 
   useEffect(() => {
-    if (isDemoMode) {
-      if (demoLangParam) {
-        localStorage.setItem('i18nextLng', demoLangParam);
-      }
-
-      const demoData = getDemoData(demoLangParam || i18n.language);
-      localStorage.setItem('dailywave_state', JSON.stringify(demoData));
-      hydrate(demoData);
-      setTimeout(() => setIsLoading(false), 300);
-      return;
-    }
-
     // 1. Load from Backend (local dev) or localStorage (production)
     if (backendUrl) {
       fetch(`${backendUrl}/api/persistence/load`)
@@ -107,6 +90,7 @@ const AppleCommandCenter = () => {
                     hydrate(JSON.parse(saved));
                   } catch (e) {
                     console.error('Failed to parse local storage state', e);
+                    localStorage.removeItem('dailywave_state');
                   }
               }
           })
@@ -120,14 +104,8 @@ const AppleCommandCenter = () => {
             hydrate(JSON.parse(saved));
           } catch (e) {
             console.error('Failed to parse local storage state', e);
-            const demoData = getDemoData(i18n.language);
-            localStorage.setItem('dailywave_state', JSON.stringify(demoData));
-            hydrate(demoData);
+            localStorage.removeItem('dailywave_state');
           }
-      } else {
-          const demoData = getDemoData(i18n.language);
-          localStorage.setItem('dailywave_state', JSON.stringify(demoData));
-          hydrate(demoData);
       }
       setTimeout(() => setIsLoading(false), 300);
     }
@@ -159,7 +137,7 @@ const AppleCommandCenter = () => {
         unsubscribe();
         clearTimeout(timeoutId);
     };
-  }, [backendUrl, demoLangParam, hydrate, i18n.language, isDemoMode]);
+  }, [backendUrl, hydrate]);
 
 
   // --- DELETE CONFIRMATION STATE ---

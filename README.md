@@ -24,12 +24,9 @@ single focused view.
 3. Start a visual timer and focus on just one step.
 4. Watch routines and project flows update in real time.
 
-## Demo links (for screenshots)
+## Screenshot links
 
 - Landing page: `https://dailywave.vercel.app/?landing=1`
-- App demo (EN, always reset): `https://dailywave.vercel.app/?demo=reset&lang=en`
-- App demo (KO, always reset): `https://dailywave.vercel.app/?demo=reset&lang=ko`
-- Local capture: `http://localhost:3020/?demo=reset&lang=ko`
 
 ## Key features
 

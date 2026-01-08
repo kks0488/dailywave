@@ -45,6 +45,7 @@ coverage/
 # Misc
 *.local
 .cache/
+backend/data/
 
 # Vercel
 .vercel
