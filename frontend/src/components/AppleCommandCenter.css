@@ -969,3 +969,231 @@ html, body, #root {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(255, 149, 0, 0.3);
 }
+
+/* --- Responsive layout --- */
+@media (max-width: 1024px) {
+    html, body, #root {
+        height: auto;
+        min-height: 100%;
+        overflow: auto;
+    }
+
+    .acc-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        height: auto;
+    }
+
+    .acc-sidebar {
+        height: auto;
+        overflow: visible;
+        border-right: none;
+        border-bottom: 1px solid var(--border-light);
+        padding: 20px 20px 24px;
+        padding-bottom: 24px;
+    }
+
+    .acc-main {
+        height: auto;
+        overflow: visible;
+        padding: 24px;
+    }
+
+    .acc-grid {
+        overflow: visible;
+        padding-bottom: 32px;
+    }
+
+    .acc-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        height: auto;
+    }
+
+    .acc-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .create-pipe-btn {
+        flex: 1 1 180px;
+    }
+
+    .acc-card {
+        padding: 22px 24px;
+        border-radius: 20px;
+    }
+
+    .card-header {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .card-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .acc-steps-container {
+        column-gap: 24px;
+        row-gap: 20px;
+        justify-content: flex-start;
+    }
+
+    .acc-step {
+        width: 72px;
+    }
+
+    .acc-step:not(:last-child)::after {
+        right: -24px;
+        width: 24px;
+    }
+
+    .acc-card.expanded .acc-step:not(:last-child)::after {
+        right: -24px;
+        width: 24px;
+    }
+
+    .glass-modal {
+        width: min(480px, calc(100vw - 32px));
+    }
+}
+
+@media (max-width: 768px) {
+    .acc-sidebar {
+        padding: 16px 16px 20px;
+    }
+
+    .acc-main {
+        padding: 20px 16px 24px;
+    }
+
+    .acc-logo {
+        font-size: 14px;
+    }
+
+    .date-badge {
+        font-size: 10px;
+    }
+
+    .routine-block h3 {
+        font-size: 10px;
+    }
+
+    .acc-routine-item {
+        padding: 8px 10px;
+    }
+
+    .text-content .title {
+        font-size: 12px;
+    }
+
+    .header-left h1 {
+        font-size: 22px;
+    }
+
+    .create-pipe-btn {
+        width: 100%;
+    }
+
+    .acc-actions {
+        gap: 8px;
+    }
+
+    .acc-icon-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .acc-card {
+        padding: 18px;
+    }
+
+    .icon-wrapper {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+    }
+
+    .header-text h2 {
+        font-size: 17px;
+    }
+
+    .header-text p {
+        font-size: 12px;
+    }
+
+    .acc-steps-container {
+        column-gap: 16px;
+        row-gap: 16px;
+    }
+
+    .acc-step {
+        width: 64px;
+    }
+
+    .step-label {
+        max-width: 72px;
+        font-size: 10px;
+    }
+
+    .acc-step:not(:last-child)::after {
+        right: -16px;
+        width: 16px;
+    }
+
+    .acc-card.expanded .acc-step:not(:last-child)::after {
+        right: -16px;
+        width: 16px;
+    }
+
+    .glass-modal {
+        padding: 20px;
+        border-radius: 18px;
+    }
+
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+    }
+
+    .action-btn {
+        width: 100%;
+        text-align: center;
+        padding: 10px 0;
+        border-radius: 10px;
+        background: var(--input-bg-alt);
+    }
+
+    .action-btn.text {
+        color: var(--text-secondary);
+    }
+
+    .action-btn.danger {
+        color: #ff3b30;
+    }
+}
+
+@media (max-width: 480px) {
+    .acc-header {
+        gap: 12px;
+    }
+
+    .acc-card {
+        padding: 16px;
+    }
+
+    .acc-steps-container {
+        column-gap: 12px;
+        row-gap: 12px;
+    }
+
+    .acc-step {
+        width: 60px;
+    }
+}

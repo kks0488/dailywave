@@ -7,6 +7,7 @@ import { PipelineSkeleton, RoutineSkeleton } from './Skeleton';
 import { EmptyPipelines } from './EmptyState';
 import WhatsNext from './WhatsNext';
 import { getApiKey, setApiKey, hasApiKey, enhanceWorkflow } from '../lib/gemini';
+import { getDemoData } from '../lib/demoData';
 import {
     Check, Plus, X, Settings, ChevronRight,
     MoreHorizontal, RotateCcw, Box, Briefcase,
@@ -25,6 +26,37 @@ import './AppleCommandCenter.css';
 
 const AppleCommandCenter = () => {
   const { t, i18n } = useTranslation();
+  const searchParams = new URLSearchParams(window.location.search);
+  const demoParam = searchParams.get('demo');
+  const isDemoMode = demoParam === 'reset' || demoParam === '1' || demoParam === 'true';
+  const demoLangParam = searchParams.get('lang');
+  const backendUrl = import.meta.env.VITE_API_URL || '';
+
+  const {
+    pipelines,
+    routines,
+    addPipeline,
+    addRoutine,
+    deleteRoutine,
+    toggleRoutine,
+    deletePipeline,
+    deleteStep,
+    updateStepStatus,
+    addStep,
+    insertStep,
+    reorderSteps,
+    renameStep,
+    renamePipeline,
+    reorderPipelines,
+    updateStepDescription,
+    hydrate,
+    undo,
+    redo
+  } = useCommandStore();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [editingStep, setEditingStep] = useState(null);
+  const [aiApiKey, setAiApiKey] = useState(getApiKey());
 
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -41,27 +73,22 @@ const AppleCommandCenter = () => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
-  // STORE
-  const { routines, pipelines, toggleRoutine, addRoutine, deleteRoutine, 
-          updateStepStatus, addStep, deleteStep, renameStep, updateStepDescription, addPipeline, deletePipeline, insertStep, reorderSteps, undo, redo, renamePipeline, reorderPipelines, hydrate } = useCommandStore();
-
-  // ONE-TIME IMPORT: No longer handled by frontend. Backend seeds on load.
-  React.useEffect(() => {
-     // Initial logic moved to Backend storage.py
-  }, []);
-
-  // LOCAL UI STATE
-  const [editingStep, setEditingStep] = useState(null); // { pipelineId, step }
-  const [isLoading, setIsLoading] = useState(true);
-  const [aiApiKey, setAiApiKey] = useState(() => getApiKey());
-
-  // --- PERSISTENCE: LOAD & SAVE ---
-  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const backendUrl = isLocalDev ? `http://${window.location.hostname}:8030` : null;
 
   useEffect(() => {
+    if (isDemoMode) {
+      if (demoLangParam) {
+        localStorage.setItem('i18nextLng', demoLangParam);
+      }
+
+      const demoData = getDemoData(demoLangParam || i18n.language);
+      localStorage.setItem('dailywave_state', JSON.stringify(demoData));
+      hydrate(demoData);
+      setTimeout(() => setIsLoading(false), 300);
+      return;
+    }
+
     // 1. Load from Backend (local dev) or localStorage (production)
     if (backendUrl) {
       fetch(`${backendUrl}/api/persistence/load`)
@@ -72,11 +99,15 @@ const AppleCommandCenter = () => {
                   console.log("Loaded state from backend file.");
               }
           })
-          .catch(err => {
+          .catch(() => {
               console.log("Backend not available, using localStorage");
               const saved = localStorage.getItem('dailywave_state');
               if (saved) {
-                  try { hydrate(JSON.parse(saved)); } catch(e) {}
+                  try {
+                    hydrate(JSON.parse(saved));
+                  } catch (e) {
+                    console.error('Failed to parse local storage state', e);
+                  }
               }
           })
           .finally(() => {
@@ -85,7 +116,18 @@ const AppleCommandCenter = () => {
     } else {
       const saved = localStorage.getItem('dailywave_state');
       if (saved) {
-          try { hydrate(JSON.parse(saved)); } catch(e) {}
+          try {
+            hydrate(JSON.parse(saved));
+          } catch (e) {
+            console.error('Failed to parse local storage state', e);
+            const demoData = getDemoData(i18n.language);
+            localStorage.setItem('dailywave_state', JSON.stringify(demoData));
+            hydrate(demoData);
+          }
+      } else {
+          const demoData = getDemoData(i18n.language);
+          localStorage.setItem('dailywave_state', JSON.stringify(demoData));
+          hydrate(demoData);
       }
       setTimeout(() => setIsLoading(false), 300);
     }
@@ -117,7 +159,7 @@ const AppleCommandCenter = () => {
         unsubscribe();
         clearTimeout(timeoutId);
     };
-  }, [hydrate]);
+  }, [backendUrl, demoLangParam, hydrate, i18n.language, isDemoMode]);
 
 
   // --- DELETE CONFIRMATION STATE ---
@@ -179,6 +221,39 @@ const AppleCommandCenter = () => {
 
   const [aiEnhanceModal, setAiEnhanceModal] = useState({ open: false, pipelineId: null, loading: false, result: null });
 
+  const normalizeAiSteps = (steps) => {
+    const rawSteps = Array.isArray(steps) ? steps : typeof steps === 'string' ? [steps] : [];
+    return rawSteps.map((step) => (typeof step === 'string' ? step.trim() : '')).filter(Boolean);
+  };
+
+  const buildStepsFromTitles = (titles) => {
+    const normalized = normalizeAiSteps(titles);
+    if (normalized.length === 0) return [];
+    const baseId = Date.now();
+    return normalized.map((title, index) => ({
+      id: `${baseId}-${index + 1}`,
+      title,
+      status: index === 0 ? 'active' : 'locked'
+    }));
+  };
+
+  const ensureActiveStep = (pipelineId) => {
+    const pipeline = pipelines.find(p => p.id === pipelineId);
+    if (!pipeline || !pipeline.steps?.length) return;
+    if (pipeline.steps.some(step => step.status === 'active')) return;
+
+    let activated = false;
+    const nextSteps = pipeline.steps.map((step) => {
+      if (activated || step.status === 'done') return step;
+      activated = true;
+      return { ...step, status: 'active' };
+    });
+
+    if (activated) {
+      reorderSteps(pipelineId, nextSteps);
+    }
+  };
+
   const handleAiEnhance = async (pipelineId) => {
     const pipeline = pipelines.find(p => p.id === pipelineId);
     if (!pipeline) return;
@@ -203,30 +278,40 @@ const AppleCommandCenter = () => {
     const { pipelineId } = aiEnhanceModal;
     if (!pipelineId) return;
 
+    const pipeline = pipelines.find(p => p.id === pipelineId);
+    if (!pipeline) return;
+
+    const stepTitle = typeof suggestion.step === 'string' ? suggestion.step.trim() : '';
+    if (!stepTitle) return;
+
     if (suggestion.type === 'insert_before') {
-      insertStep(pipelineId, suggestion.step, 0);
+      insertStep(pipelineId, 0, stepTitle);
     } else if (suggestion.type === 'insert_after') {
-      insertStep(pipelineId, suggestion.step, suggestion.afterIndex + 1);
+      const baseIndex = Number.isInteger(suggestion.afterIndex) ? suggestion.afterIndex : pipeline.steps.length - 1;
+      const insertIndex = Math.min(Math.max(baseIndex + 1, 0), pipeline.steps.length);
+      insertStep(pipelineId, insertIndex, stepTitle);
     } else if (suggestion.type === 'append') {
-      addStep(pipelineId, suggestion.step);
+      addStep(pipelineId, stepTitle);
+    } else {
+      return;
     }
-    
-    toast.success(t('ai.stepAdded', `Added: ${suggestion.step}`));
+
+    ensureActiveStep(pipelineId);
+    toast.success(t('ai.stepAdded', `Added: ${stepTitle}`));
   };
 
   const handleApplyAllSuggestions = () => {
     const { pipelineId, result } = aiEnhanceModal;
-    if (!pipelineId || !result?.optimizedFlow) return;
+    if (!pipelineId) return;
 
-    const pipeline = pipelines.find(p => p.id === pipelineId);
-    if (!pipeline) return;
+    const optimizedSteps = buildStepsFromTitles(result?.optimizedFlow || []);
+    if (optimizedSteps.length === 0) {
+      toast.warning(t('ai.workflowOptimizeFailed', 'AI did not return a full flow.'));
+      return;
+    }
 
-    pipeline.steps?.forEach(step => deleteStep(pipelineId, step.id));
-    
-    result.optimizedFlow.forEach(stepName => {
-      addStep(pipelineId, stepName);
-    });
-
+    reorderSteps(pipelineId, optimizedSteps);
+    ensureActiveStep(pipelineId);
     toast.success(t('ai.workflowOptimized', 'Workflow optimized!'));
     setAiEnhanceModal({ open: false, pipelineId: null, loading: false, result: null });
   };
@@ -391,6 +476,19 @@ const AppleCommandCenter = () => {
       closePipeModal();
   };
 
+  const handleAiAddWorkflow = ({ title, subtitle = '', steps = [] }) => {
+      const workflowTitle = typeof title === 'string' ? title.trim() : '';
+      if (!workflowTitle) return false;
+
+      const workflowSubtitle = typeof subtitle === 'string' ? subtitle.trim() : '';
+      const finalColor = ALL_COLORS[pipelines.length % ALL_COLORS.length];
+      const stepList = buildStepsFromTitles(steps);
+      const finalSteps = stepList.length ? stepList : buildStepsFromTitles(['Start', 'Finish']);
+
+      addPipeline(workflowTitle, workflowSubtitle, finalColor, getIconType(workflowTitle), { steps: finalSteps });
+      return true;
+  };
+
     const handlePipelineDelete = (id, e) => {
       e.stopPropagation();
       requestDelete('pipeline', id);
@@ -435,10 +533,15 @@ const AppleCommandCenter = () => {
       //     blue: '#007aff', red: '#ff3b30', green: '#34c759',
       //     purple: '#af52de', orange: '#ff9500'
       // };
-      const iconMapped = type === 'zap' ? <Zap size={20} /> :
-                         type === 'box' ? <Box size={20} /> :
-                         type === 'link' ? <Link size={20} /> : <Briefcase size={20} />;
-      return iconMapped;
+      switch (type) {
+        case 'zap': return <Zap size={20} />;
+        case 'box': return <Box size={20} />;
+        case 'link': return <Link size={20} />;
+        case 'sun': return <Sun size={20} />;
+        case 'palette': return <Palette size={20} />;
+        case 'calendar': return <Calendar size={20} />;
+        default: return <Briefcase size={20} />;
+      }
   };
 
   // --- Drag & Drop Logic ---
@@ -693,13 +796,23 @@ const AppleCommandCenter = () => {
                           addRoutine({ title, time, type });
                       }}
                       onAddStep={(title, workflowName) => {
-                          const pipeline = pipelines.find(p => 
-                              p.title.toLowerCase().includes(workflowName.toLowerCase())
-                          );
+                          const stepTitle = typeof title === 'string' ? title.trim() : '';
+                          if (!stepTitle) return false;
+
+                          const workflowQuery = typeof workflowName === 'string' ? workflowName.trim().toLowerCase() : '';
+                          const pipeline = workflowQuery
+                              ? pipelines.find(p => p.title.toLowerCase().includes(workflowQuery))
+                              : pipelines[0];
+
                           if (pipeline) {
-                              addStep(pipeline.id, title);
+                              addStep(pipeline.id, stepTitle);
+                              ensureActiveStep(pipeline.id);
+                              return true;
                           }
+
+                          return false;
                       }}
+                      onAddWorkflow={(data) => handleAiAddWorkflow(data)}
                   />
               )}
              {isLoading ? (

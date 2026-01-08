@@ -99,3 +99,18 @@
     transform: translateX(20px);
   }
 }
+
+@media (max-width: 768px) {
+  .toast-container {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    align-items: stretch;
+  }
+
+  .toast-item {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+}

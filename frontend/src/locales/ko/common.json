@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "DailyWave",
-    "tagline": "하루의 혼란을 흐르는 리듬으로"
+    "tagline": "해야 할 게 많은 날, 딱 하나부터."
   },
   "sidebar": {
     "morningRoutine": "오전 루틴",
@@ -107,7 +107,9 @@
       "high": "고에너지"
     },
     "chatToggle": "AI 명령",
-    "chatPlaceholder": "예: \"9시에 운동 루틴 추가해줘\""
+    "chatPlaceholder": "예: \"9시에 운동 루틴 추가해줘\"",
+    "commandFailed": "명령을 적용하지 못했습니다.",
+    "workflowOptimizeFailed": "AI가 전체 플로우를 반환하지 않았습니다."
   },
   "auth": {
     "signIn": "로그인",

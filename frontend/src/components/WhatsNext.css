@@ -593,3 +593,85 @@
   font-size: 13px;
   min-width: auto;
 }
+
+@media (max-width: 768px) {
+  .whats-next-card {
+    padding: 20px;
+  }
+
+  .whats-next-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .energy-selector {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .energy-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .task-name {
+    font-size: 18px;
+  }
+
+  .timer-ring {
+    width: 120px;
+    height: 120px;
+  }
+
+  .timer-display .time {
+    font-size: 24px;
+  }
+
+  .timer-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .ask-ai-btn {
+    width: 100%;
+    min-width: 0;
+    padding: 14px 20px;
+  }
+
+  .summary-stats {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .chat-form {
+    flex-direction: column;
+  }
+
+  .chat-send {
+    width: 100%;
+  }
+
+  .ai-tabs {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .whats-next-card {
+    padding: 16px;
+  }
+
+  .task-name {
+    font-size: 16px;
+  }
+
+  .energy-btn {
+    padding: 6px 8px;
+  }
+
+  .timer-ring {
+    width: 110px;
+    height: 110px;
+  }
+}

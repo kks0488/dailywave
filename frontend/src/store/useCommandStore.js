@@ -66,24 +66,37 @@ export const useCommandStore = create(
       }),
 
       // --- PIPELINE ACTIONS ---
-      addPipeline: (title, subtitle, color, iconType) => set((state) => {
-        const historySnapshot = { pipelines: state.pipelines, routines: state.routines };
-        return {
-            past: [...state.past, historySnapshot].slice(-20),
-            future: [],
-            pipelines: [...state.pipelines, {
-                id: Date.now().toString(),
-                title,
-                subtitle,
-                color,
-                iconType,
-                steps: [
-                    { id: 's1', title: '시작', status: 'pending' },
-                    { id: 's2', title: '종료', status: 'locked' }
-                ]
-            }]
-        };
-      }),
+      addPipeline: (title, subtitle, color, iconType, options = {}) => {
+        const pipelineId = options.id || Date.now().toString();
+        const steps = Array.isArray(options.steps) && options.steps.length > 0
+          ? options.steps.map((step, index) => ({
+              id: step.id || `${pipelineId}-step-${index + 1}`,
+              title: step.title || step.name || `Step ${index + 1}`,
+              status: step.status || 'pending'
+            }))
+          : [
+              { id: `${pipelineId}-s1`, title: 'Start', status: 'pending' },
+              { id: `${pipelineId}-s2`, title: 'Finish', status: 'locked' }
+            ];
+
+        set((state) => {
+          const historySnapshot = { pipelines: state.pipelines, routines: state.routines };
+          return {
+              past: [...state.past, historySnapshot].slice(-20),
+              future: [],
+              pipelines: [...state.pipelines, {
+                  id: pipelineId,
+                  title,
+                  subtitle,
+                  color,
+                  iconType,
+                  steps
+              }]
+          };
+        });
+
+        return pipelineId;
+      },
       deletePipeline: (id) => set((state) => {
         const historySnapshot = { pipelines: state.pipelines, routines: state.routines };
         return {

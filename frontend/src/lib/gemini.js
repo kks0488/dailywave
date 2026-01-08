@@ -4,6 +4,99 @@ export const getApiKey = () => {
   return localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
 };
 
+const getCurrentLanguageCode = () => {
+  const lang = localStorage.getItem('i18nextLng') || navigator.language || 'en';
+  return lang.startsWith('ko') ? 'ko' : 'en';
+};
+
+const getLanguageLabel = () => (getCurrentLanguageCode() === 'ko' ? 'Korean' : 'English');
+
+const getLanguageInstruction = () => {
+  const lang = getLanguageLabel();
+  return `IMPORTANT: Respond in ${lang}. All text fields must be in ${lang}.`;
+};
+
+const getFallbackTexts = () => {
+  const isKorean = getCurrentLanguageCode() === 'ko';
+  return {
+    whatsNext: isKorean
+      ? {
+          reasonActiveTask: "첫 번째 진행 중인 작업부터 시작해요",
+          reasonEmpty: "할 일이 아직 없어요",
+          encouragement: "지금 시작하면 돼요!",
+          emptyTask: "5분 휴식하기",
+          task: "휴식"
+        }
+      : {
+          reasonActiveTask: "Start with your first active task",
+          reasonEmpty: "No pending tasks found",
+          encouragement: "You got this! Just start.",
+          emptyTask: "Take a 5-minute break",
+          task: "Break"
+        },
+    commandUnknown: isKorean
+      ? "명령을 이해하지 못했습니다. 다시 시도해주세요."
+      : "I did not understand that. Please try again.",
+    dailySummary: isKorean
+      ? {
+          celebration: "오늘도 수고했어요!",
+          tomorrowTip: "가장 중요한 일부터 시작해요.",
+          mood: "good"
+        }
+      : {
+          celebration: "Great effort today!",
+          tomorrowTip: "Start with your most important task first.",
+          mood: "good"
+        },
+    quickActions: isKorean
+      ? [
+          { action: "2분 스트레칭", type: "break", duration: 2, emoji: "🧘" },
+          { action: "다음 작업 확인", type: "quick_win", duration: 5, emoji: "📋" },
+          { action: "물 한 잔 마시기", type: "break", duration: 1, emoji: "💧" }
+        ]
+      : [
+          { action: "Take a 2-minute stretch break", type: "break", duration: 2, emoji: "🧘" },
+          { action: "Review your next task", type: "quick_win", duration: 5, emoji: "📋" },
+          { action: "Drink some water", type: "break", duration: 1, emoji: "💧" }
+        ],
+    suggestOptimalTime: isKorean
+      ? {
+          suggestedTime: "09:00",
+          reason: "오전이 집중하기 좋아요",
+          alternativeTime: "14:00",
+          energyRequired: "medium"
+        }
+      : {
+          suggestedTime: "09:00",
+          reason: "Morning is best for important tasks",
+          alternativeTime: "14:00",
+          energyRequired: "medium"
+        },
+    analyzeRoutinePatterns: isKorean
+      ? {
+          insights: [{ type: "positive", message: "좋은 흐름이에요!", affectedRoutine: null }],
+          overallScore: 70,
+          topSuggestion: "아침 루틴부터 처리해요."
+        }
+      : {
+          insights: [{ type: "positive", message: "Keep up the good work!", affectedRoutine: null }],
+          overallScore: 70,
+          topSuggestion: "Try to complete morning routines first."
+        },
+    workflow: isKorean
+      ? {
+          analysis: "워크플로우를 분석하지 못했어요. 다시 시도해주세요.",
+          suggestions: [],
+          optimizedFlow: []
+        }
+      : {
+          analysis: "Could not analyze workflow. Try again.",
+          suggestions: [],
+          optimizedFlow: []
+        }
+  };
+};
+
 export const setApiKey = (key) => {
   localStorage.setItem('gemini_api_key', key);
 };
@@ -24,7 +117,8 @@ export const askGemini = async (prompt, context = {}) => {
 Your role is to help users with time blindness and decision paralysis.
 Be concise, encouraging, and never judgmental.
 Current time: ${new Date().toLocaleTimeString()}
-Current date: ${new Date().toLocaleDateString()}`;
+Current date: ${new Date().toLocaleDateString()}
+${getLanguageInstruction()}`;
 
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: 'POST',
@@ -69,13 +163,15 @@ export const getWhatsNext = async (pipelines, routines, currentEnergy = 'medium'
   pipelines.forEach(p => {
     p.steps?.forEach((step, idx) => {
       if (step.status === 'active' || step.status === 'pending') {
+        const stepTitle = step.title || step.name;
+        if (!stepTitle) return;
         activeTasks.push({
           type: 'workflow',
           pipeline: p.title,
-          task: step.name,
+          task: stepTitle,
           status: step.status,
           position: idx + 1,
-          memo: step.memo
+          memo: step.description || step.memo
         });
       }
     });
@@ -96,6 +192,8 @@ Active workflow tasks: ${JSON.stringify(activeTasks)}
 Pending routines: ${JSON.stringify(pendingRoutines)}
 Time of day: ${timeOfDay} (${hour}:00)
 Energy level: ${currentEnergy}
+
+${getLanguageInstruction()}
 
 Respond in this exact JSON format only, no other text:
 {
@@ -121,24 +219,27 @@ Respond in this exact JSON format only, no other text:
   }
   
   if (activeTasks.length > 0) {
+    const fallbacks = getFallbackTexts().whatsNext;
     return {
       task: activeTasks[0].task,
-      reason: "Starting with your first active task",
+      reason: fallbacks.reasonActiveTask,
       estimatedMinutes: 25,
-      encouragement: "You got this! Just start."
+      encouragement: fallbacks.encouragement
     };
   }
   
+  const fallbacks = getFallbackTexts().whatsNext;
   return {
-    task: "Take a 5-minute break",
-    reason: "No pending tasks found",
+    task: fallbacks.emptyTask,
+    reason: fallbacks.reasonEmpty,
     estimatedMinutes: 5,
-    encouragement: "Rest is productive too!"
+    encouragement: fallbacks.encouragement
   };
 };
 
 export const parseAICommand = async (userInput, pipelines, routines) => {
   const workflowNames = pipelines.map(p => p.title).join(', ') || 'None';
+  const langLabel = getLanguageLabel();
   
   const prompt = `You are a JSON-only parser. Parse this command and return ONLY valid JSON.
 
@@ -149,16 +250,16 @@ RULES:
 - Output ONLY JSON, no explanation, no markdown
 - Extract the task/action from the input
 - Match workflow names if mentioned (fuzzy match OK)
+- If the user asks to create a new workflow/pipeline, use "add_workflow"
+- If the user wants to add a step but no matching workflow exists, use "add_workflow" and include the step in "steps"
 - Time format: HH:MM (24h)
+- ${getLanguageInstruction()}
 
 OUTPUT FORMAT (strict JSON):
-{"action":"add_routine","data":{"title":"task","time":"09:00"},"confirmation":"확인 메시지"}
-{"action":"add_workflow_step","data":{"title":"step","workflow":"workflow name"},"confirmation":"확인 메시지"}
-{"action":"unknown","data":{},"confirmation":"이해하지 못했습니다"}
-
-Examples:
-Input: "9시에 운동 추가해줘" → {"action":"add_routine","data":{"title":"운동","time":"09:00"},"confirmation":"9시에 운동을 추가했습니다"}
-Input: "마케팅 워크플로우에 보고서 작성 넣어줘" → {"action":"add_workflow_step","data":{"title":"보고서 작성","workflow":"마케팅"},"confirmation":"마케팅에 보고서 작성을 추가했습니다"}
+{"action":"add_routine","data":{"title":"task","time":"09:00"},"confirmation":"confirmation message in ${langLabel}"}
+{"action":"add_workflow_step","data":{"title":"step","workflow":"workflow name"},"confirmation":"confirmation message in ${langLabel}"}
+{"action":"add_workflow","data":{"title":"workflow name","subtitle":"optional","steps":["Step 1","Step 2"]},"confirmation":"confirmation message in ${langLabel}"}
+{"action":"unknown","data":{},"confirmation":"error message in ${langLabel}"}
 
 NOW PARSE AND OUTPUT JSON ONLY:`;
 
@@ -169,14 +270,75 @@ NOW PARSE AND OUTPUT JSON ONLY:`;
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      console.log('Parsed command:', parsed);
-      return parsed;
+      const confirmation = typeof parsed.confirmation === 'string' ? parsed.confirmation : getFallbackTexts().commandUnknown;
+      const data = parsed && typeof parsed.data === 'object' ? parsed.data : {};
+
+      const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+      const normalizeSteps = (value) => {
+        const raw = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+        return raw.map((step) => (typeof step === 'string' ? step.trim() : '')).filter(Boolean);
+      };
+
+      const buildWorkflowCreatedMessage = (workflowTitle, stepTitle) => {
+        const isKorean = getCurrentLanguageCode() === 'ko';
+        if (stepTitle) {
+          return isKorean
+            ? `"${workflowTitle}" 워크플로우를 만들고 "${stepTitle}" 스텝을 추가했어요.`
+            : `Created "${workflowTitle}" and added "${stepTitle}".`;
+        }
+        return isKorean
+          ? `"${workflowTitle}" 워크플로우를 만들었어요.`
+          : `Created "${workflowTitle}" workflow.`;
+      };
+
+      const action = typeof parsed.action === 'string' ? parsed.action : 'unknown';
+
+      if (action === 'add_routine') {
+        const title = normalizeText(data.title);
+        const time = normalizeText(data.time) || '09:00';
+        if (!title) {
+          return { action: 'unknown', data: {}, confirmation: getFallbackTexts().commandUnknown };
+        }
+        return { action: 'add_routine', data: { title, time }, confirmation };
+      }
+
+      if (action === 'add_workflow_step') {
+        const title = normalizeText(data.title);
+        const workflow = normalizeText(data.workflow);
+        if (!title || !workflow) {
+          return { action: 'unknown', data: {}, confirmation: getFallbackTexts().commandUnknown };
+        }
+
+        const match = pipelines.find((p) => p.title.toLowerCase().includes(workflow.toLowerCase()));
+        if (!match) {
+          return {
+            action: 'add_workflow',
+            data: { title: workflow, subtitle: '', steps: [title] },
+            confirmation: buildWorkflowCreatedMessage(workflow, title)
+          };
+        }
+
+        return { action: 'add_workflow_step', data: { title, workflow }, confirmation };
+      }
+
+      if (action === 'add_workflow') {
+        const title = normalizeText(data.title);
+        if (!title) {
+          return { action: 'unknown', data: {}, confirmation: getFallbackTexts().commandUnknown };
+        }
+
+        const subtitle = normalizeText(data.subtitle);
+        const steps = normalizeSteps(data.steps);
+        return { action: 'add_workflow', data: { title, subtitle, steps }, confirmation };
+      }
+
+      return { action: 'unknown', data: {}, confirmation: getFallbackTexts().commandUnknown };
     }
   } catch (e) {
     console.error('Failed to parse command:', e, response);
   }
   
-  return { action: 'unknown', data: {}, confirmation: '명령을 이해하지 못했습니다. 다시 시도해주세요.' };
+  return { action: 'unknown', data: {}, confirmation: getFallbackTexts().commandUnknown };
 };
 
 export const estimateTaskTime = async (taskName, taskMemo = '') => {
@@ -184,6 +346,8 @@ export const estimateTaskTime = async (taskName, taskMemo = '') => {
 
 Task: ${taskName}
 ${taskMemo ? `Details: ${taskMemo}` : ''}
+
+${getLanguageInstruction()}
 
 Respond with ONLY a JSON object, no other text:
 {
@@ -214,10 +378,12 @@ export const getDailySummary = async (pipelines, routines) => {
   
   pipelines.forEach(p => {
     p.steps?.forEach(step => {
-      if (step.status === 'completed') {
-        completedTasks.push({ pipeline: p.title, task: step.name });
-      } else if (step.status === 'active' || step.status === 'pending') {
-        pendingTasks.push({ pipeline: p.title, task: step.name });
+      const stepTitle = step.title || step.name;
+      if (!stepTitle) return;
+      if (step.status === 'done') {
+        completedTasks.push({ pipeline: p.title, task: stepTitle });
+      } else if (step.status === 'active' || step.status === 'pending' || step.status === 'locked') {
+        pendingTasks.push({ pipeline: p.title, task: stepTitle });
       }
     });
   });
@@ -233,6 +399,8 @@ STILL PENDING:
 - Workflow tasks: ${pendingTasks.map(t => t.task).join(', ') || 'None'}
 
 Current time: ${new Date().toLocaleTimeString()}
+
+${getLanguageInstruction()}
 
 Respond with ONLY this JSON format:
 {
@@ -254,13 +422,7 @@ Respond with ONLY this JSON format:
     console.error('Failed to parse daily summary:', e);
   }
   
-  return {
-    celebration: "Great effort today!",
-    completedCount: completedRoutines.length + completedTasks.length,
-    pendingCount: pendingRoutines.length + pendingTasks.length,
-    tomorrowTip: "Start with your most important task first.",
-    mood: "good"
-  };
+  return getFallbackTexts().dailySummary;
 };
 
 export const suggestOptimalTime = async (taskTitle, userEnergy = 'medium') => {
@@ -278,6 +440,8 @@ Consider:
 - Afternoon (14-17): Good for routine tasks, emails
 - Evening (17-21): Creative work, planning
 - Night (21+): Wind-down tasks only
+
+${getLanguageInstruction()}
 
 Respond with ONLY this JSON:
 {
@@ -298,12 +462,7 @@ Respond with ONLY this JSON:
     console.error('Failed to parse time suggestion:', e);
   }
   
-  return {
-    suggestedTime: "09:00",
-    reason: "Morning is best for important tasks",
-    alternativeTime: "14:00",
-    energyRequired: "medium"
-  };
+  return getFallbackTexts().suggestOptimalTime;
 };
 
 export const analyzeRoutinePatterns = async (routines, completionHistory = []) => {
@@ -345,11 +504,7 @@ Respond with ONLY this JSON:
     console.error('Failed to parse pattern analysis:', e);
   }
   
-  return {
-    insights: [{ type: "positive", message: "Keep up the good work!", affectedRoutine: null }],
-    overallScore: 70,
-    topSuggestion: "Try to complete morning routines first."
-  };
+  return getFallbackTexts().analyzeRoutinePatterns;
 };
 
 export const getQuickActions = async (pipelines, routines, currentEnergy = 'medium') => {
@@ -360,7 +515,9 @@ export const getQuickActions = async (pipelines, routines, currentEnergy = 'medi
   pipelines.forEach(p => {
     p.steps?.forEach(step => {
       if (step.status === 'active' || step.status === 'pending') {
-        activeTasks.push({ pipeline: p.title, task: step.name, status: step.status });
+        const stepTitle = step.title || step.name;
+        if (!stepTitle) return;
+        activeTasks.push({ pipeline: p.title, task: stepTitle, status: step.status });
       }
     });
   });
@@ -376,6 +533,7 @@ Rules:
 - Each action should take 5-15 minutes max
 - Match suggestions to energy level
 - Prioritize time-sensitive items
+- ${getLanguageInstruction()}
 
 Respond with ONLY this JSON array:
 [
@@ -398,16 +556,12 @@ Respond with ONLY this JSON array:
     console.error('Failed to parse quick actions:', e);
   }
   
-  return [
-    { action: "Take a 2-minute stretch break", type: "break", duration: 2, emoji: "🧘" },
-    { action: "Review your next task", type: "quick_win", duration: 5, emoji: "📋" },
-    { action: "Drink some water", type: "break", duration: 1, emoji: "💧" }
-  ];
+  return getFallbackTexts().quickActions;
 };
 
 export const enhanceWorkflow = async (workflowTitle, currentSteps) => {
   const stepsText = currentSteps.length > 0 
-    ? currentSteps.map((s, i) => `${i + 1}. ${s.name}`).join('\n')
+    ? currentSteps.map((s, i) => `${i + 1}. ${s.title || s.name || ''}`).join('\n')
     : 'No steps yet';
 
   const prompt = `You are DailyWave AI, a workflow optimization expert.
@@ -452,7 +606,8 @@ Rules:
 - type: "insert_before" (prepend to workflow), "insert_after" (insert after specific index), "append" (add to end)
 - afterIndex is 0-based (0 = first step, 1 = second step, etc.)
 - Keep step names concise (max 5 words each)
-- Focus on practical, actionable steps for ADHD users`;
+- Focus on practical, actionable steps for ADHD users
+- ${getLanguageInstruction()}`;
 
   const response = await askGemini(prompt);
   
@@ -465,9 +620,10 @@ Rules:
     console.error('Failed to parse workflow enhancement:', e);
   }
   
+  const fallback = getFallbackTexts().workflow;
   return {
-    analysis: "Could not analyze workflow. Try again.",
+    analysis: fallback.analysis,
     suggestions: [],
-    optimizedFlow: currentSteps.map(s => s.name)
+    optimizedFlow: currentSteps.map(s => s.title || s.name).filter(Boolean)
   };
 };

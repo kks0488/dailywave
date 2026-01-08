@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "DailyWave",
-    "tagline": "Transform your daily chaos into a flowing rhythm"
+    "tagline": "One clear next step. Then the next."
   },
   "sidebar": {
     "morningRoutine": "Morning Routine",
@@ -107,7 +107,9 @@
       "high": "High Energy"
     },
     "chatToggle": "AI Command",
-    "chatPlaceholder": "e.g., \"Add exercise to routine at 9am\""
+    "chatPlaceholder": "e.g., \"Add exercise to routine at 9am\"",
+    "commandFailed": "Could not apply that command.",
+    "workflowOptimizeFailed": "AI did not return a full flow."
   },
   "auth": {
     "signIn": "Sign In",

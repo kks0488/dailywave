@@ -156,3 +156,13 @@
   color: var(--text-primary);
   margin: 0 2px;
 }
+
+@media (max-width: 768px) {
+  .shortcuts-trigger {
+    display: none;
+  }
+
+  .shortcuts-modal {
+    width: calc(100vw - 32px);
+  }
+}

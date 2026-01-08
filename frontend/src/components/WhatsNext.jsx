@@ -5,7 +5,7 @@ import { getWhatsNext, hasApiKey, parseAICommand, getDailySummary, getQuickActio
 import { useToastStore } from '../store/useToastStore';
 import './WhatsNext.css';
 
-const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddStep }) => {
+const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddStep, onAddWorkflow }) => {
   const { t } = useTranslation();
   const toast = useToastStore(state => state.addToast);
   
@@ -31,12 +31,41 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
       const result = await parseAICommand(chatInput, pipelines, routines);
       console.log('AI command result:', result);
       
+      const data = result?.data || {};
+      let handled = false;
+
       if (result.action === 'add_routine' && onAddRoutine) {
-        onAddRoutine(result.data.title, result.data.time || '09:00');
+        onAddRoutine(data.title, data.time || '09:00');
         toast('success', result.confirmation);
-      } else if (result.action === 'add_workflow_step' && onAddStep) {
-        onAddStep(result.data.title, result.data.workflow);
-        toast('success', result.confirmation);
+        handled = true;
+      } else if (result.action === 'add_workflow_step') {
+        if (onAddStep) {
+          handled = !!onAddStep(data.title, data.workflow);
+        }
+
+        if (!handled && onAddWorkflow && data.workflow) {
+          handled = !!onAddWorkflow({ title: data.workflow, steps: [data.title] });
+        }
+
+        if (handled) {
+          toast('success', result.confirmation);
+        } else {
+          toast('warning', t('ai.commandFailed', 'Could not apply that command.'));
+        }
+      } else if (result.action === 'add_workflow') {
+        if (onAddWorkflow) {
+          handled = !!onAddWorkflow({
+            title: data.title,
+            subtitle: data.subtitle,
+            steps: data.steps
+          });
+        }
+
+        if (handled) {
+          toast('success', result.confirmation);
+        } else {
+          toast('warning', t('ai.commandFailed', 'Could not apply that command.'));
+        }
       } else if (result.action === 'unknown') {
         toast('warning', result.confirmation);
       } else {
