@@ -12,6 +12,7 @@ It recommends one task you can start now, shows only the next step, and blends r
 single focused view.
 
 [**🚀 Try it live (https://dailywave.vercel.app/)**](https://dailywave.vercel.app/)
+Deployment status: Live on Vercel (https://dailywave.vercel.app/)
 
 ## Screenshot
 
