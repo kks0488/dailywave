@@ -974,9 +974,9 @@ const AppleCommandCenter = () => {
                           }}
                           style={{ width: '100%', marginTop: '8px' }}
                       />
-                      <p style={{ fontSize: '11px', color: '#86868b', marginTop: '6px' }}>
+                      <p className="settings-text-muted">
                           {t('ai.apiKeyDesc')} →{' '}
-                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style={{ color: '#0a84ff' }}>
+                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">
                               aistudio.google.com
                           </a>
                       </p>
@@ -985,17 +985,16 @@ const AppleCommandCenter = () => {
                   <div className="memo-section">
                       <label>{t('settings.dataManagement')}</label>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
-                         <button 
-                             className="status-option pending" 
-                             style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f' }}
+                         <button
+                             className="status-option pending settings-btn-secondary"
                              onClick={handleExportData}
                          >
                              <Download size={16}/> {t('settings.backup')}
                          </button>
-                         
-                         <label 
-                             className="status-option pending" 
-                             style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f', cursor: 'pointer', margin: 0 }}
+
+                         <label
+                             className="status-option pending settings-btn-secondary"
+                             style={{ cursor: 'pointer', margin: 0 }}
                          >
                              <Upload size={16}/> 
                              {t('settings.restore')}
@@ -1011,12 +1010,11 @@ const AppleCommandCenter = () => {
 
                  <div className="memo-section">
                      <label>{t('settings.calendar')}</label>
-                     <p style={{ fontSize: '11px', color: '#86868b', marginBottom: '8px', lineHeight: '1.4' }}>
+                     <p className="settings-text-muted" style={{ marginBottom: '8px', lineHeight: '1.4' }}>
                          {t('settings.calendarDesc')}
                      </p>
-                     <button 
-                         className="status-option pending" 
-                         style={{ justifyContent: 'center', background: '#f5f5f7', color: '#1d1d1f' }}
+                     <button
+                         className="status-option pending settings-btn-secondary"
                           onClick={() => {
                               const calUrl = `http://${window.location.hostname}:8030/api/calendar/feed`;
                               navigator.clipboard.writeText(calUrl);
@@ -1029,9 +1027,8 @@ const AppleCommandCenter = () => {
 
                  <div className="memo-section">
                      <label>{t('settings.reset')}</label>
-                     <button 
-                         className="status-option locked" 
-                         style={{ justifyContent: 'center', border: '1px solid #ff3b30', background: '#fff0f0' }}
+                     <button
+                         className="status-option locked settings-btn-danger"
                          onClick={handleResetData}
                      >
                          <RotateCcw size={16}/> {t('settings.resetAll')}
@@ -1040,11 +1037,8 @@ const AppleCommandCenter = () => {
 
                  <div className="modal-actions" style={{ marginTop: '24px', borderTop: 'none' }}>
                      <div style={{ flex: 1 }}></div>
-                     <button 
-                         style={{
-                             padding: '12px 24px', borderRadius: '16px', border: 'none',
-                             background: '#1d1d1f', color: 'white', fontWeight: '700', fontSize: '14px', cursor: 'pointer'
-                         }}
+                     <button
+                         className="settings-btn-done"
                          onClick={() => setIsSettingsOpen(false)}
                      >
                          {t('settings.done')}
@@ -1238,28 +1232,21 @@ const AppleCommandCenter = () => {
               <button className="close-btn" onClick={() => setDeleteConfirm(null)}><X size={18}/></button>
             </div>
             
-            <div className="delete-confirm-body" style={{ margin: '20px 0', fontSize: '15px', color: '#86868b', lineHeight: '1.5' }}>
+            <div className="delete-confirm-body">
               {deleteConfirm.message}
             </div>
 
             <div className="modal-actions" style={{ marginTop: '24px', display: 'flex', gap: '12px', borderTop: 'none', padding: 0 }}>
-              <button 
+              <button
+                className="delete-modal-btn-cancel"
                 onClick={() => setDeleteConfirm(null)}
-                style={{
-                    flex: 1, padding: '14px', borderRadius: '16px', border: 'none',
-                    background: '#f5f5f7', color: '#1d1d1f', fontWeight: '700', fontSize: '14px', cursor: 'pointer'
-                }}
               >
                 {t('modal.cancel')}
               </button>
-              <button 
+              <button
+                className="delete-modal-btn-delete"
                 onClick={confirmDelete}
                 autoFocus
-                style={{ 
-                    flex: 1, padding: '14px', borderRadius: '16px', border: 'none',
-                    background: '#ff3b30', color: 'white', fontWeight: '700', fontSize: '14px', cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(255, 59, 48, 0.3)'
-                }} 
               >
                 {t('modal.delete')}
               </button>
