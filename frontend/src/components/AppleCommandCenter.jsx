@@ -8,7 +8,7 @@ import { EmptyPipelines } from './EmptyState';
 import WhatsNext from './WhatsNext';
 import { getApiKey, setApiKey, hasApiKey, enhanceWorkflow } from '../lib/gemini';
 import {
-    Check, Plus, X, Settings, ChevronRight,
+    Check, Plus, X, Settings, ChevronRight, ChevronLeft,
     MoreHorizontal, RotateCcw, Box, Briefcase,
     Zap, Link, Archive, Maximize2, Minimize2, Trash2, Palette,
     Download, Upload, Save, Calendar, Copy, Sun, Moon, Sparkles, Wand2
@@ -939,8 +939,13 @@ const AppleCommandCenter = () => {
          <div className="modal-overlay" onClick={() => setIsSettingsOpen(false)}>
              <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
                  <div className="modal-header">
-                     <h3>{t('settings.title')}</h3>
-                     <button className="close-btn" onClick={() => setIsSettingsOpen(false)}><X size={18}/></button>
+                     <div className="modal-header-center">
+                         <button className="modal-back-btn" onClick={() => setIsSettingsOpen(false)}>
+                             <ChevronLeft size={24}/>
+                         </button>
+                         <h3>{t('settings.title')}</h3>
+                     </div>
+                     <button className="close-btn" onClick={() => setIsSettingsOpen(false)}><X size={20}/></button>
                  </div>
                  
                  <div className="memo-section">
@@ -1053,8 +1058,13 @@ const AppleCommandCenter = () => {
             <div className="modal-overlay" onClick={closeEditor}>
                 <div className="glass-modal" onClick={e => e.stopPropagation()}>
                     <div className="modal-header">
-                       <h3>{t('step.settings')}</h3>
-                       <button className="close-btn" onClick={closeEditor}><X size={18}/></button>
+                       <div className="modal-header-center">
+                           <button className="modal-back-btn" onClick={closeEditor}>
+                               <ChevronLeft size={24}/>
+                           </button>
+                           <h3>{t('step.settings')}</h3>
+                       </div>
+                       <button className="close-btn" onClick={closeEditor}><X size={20}/></button>
                     </div>
                     
                     <div className="step-preview-large">
@@ -1106,8 +1116,13 @@ const AppleCommandCenter = () => {
             <div className="modal-overlay" onClick={closeStepModal}>
                 <div className="glass-modal" onClick={e => e.stopPropagation()}>
                     <div className="modal-header">
-                       <h3>{t('step.add')}</h3>
-                       <button className="close-btn" onClick={closeStepModal}><X size={18}/></button>
+                       <div className="modal-header-center">
+                           <button className="modal-back-btn" onClick={closeStepModal}>
+                               <ChevronLeft size={24}/>
+                           </button>
+                           <h3>{t('step.add')}</h3>
+                       </div>
+                       <button className="close-btn" onClick={closeStepModal}><X size={20}/></button>
                     </div>
                     
                     <div className="form-group">
@@ -1134,8 +1149,13 @@ const AppleCommandCenter = () => {
             <div className="modal-overlay" onClick={closePipeModal}>
                 <div className="glass-modal" onClick={e => e.stopPropagation()}>
                     <div className="modal-header">
-                       <h3>{t('workflow.create')}</h3>
-                       <button className="close-btn" onClick={closePipeModal}><X size={18}/></button>
+                       <div className="modal-header-center">
+                           <button className="modal-back-btn" onClick={closePipeModal}>
+                               <ChevronLeft size={24}/>
+                           </button>
+                           <h3>{t('workflow.create')}</h3>
+                       </div>
+                       <button className="close-btn" onClick={closePipeModal}><X size={20}/></button>
                     </div>
                     
                     <div className="form-group">
@@ -1201,8 +1221,13 @@ const AppleCommandCenter = () => {
              <div className="modal-overlay" onClick={() => setRenamingPipeline(null)}>
                  <div className="glass-modal" onClick={e => e.stopPropagation()}>
                      <div className="modal-header">
-                        <h3>{t('workflow.rename')}</h3>
-                        <button className="close-btn" onClick={() => setRenamingPipeline(null)}><X size={18}/></button>
+                        <div className="modal-header-center">
+                            <button className="modal-back-btn" onClick={() => setRenamingPipeline(null)}>
+                                <ChevronLeft size={24}/>
+                            </button>
+                            <h3>{t('workflow.rename')}</h3>
+                        </div>
+                        <button className="close-btn" onClick={() => setRenamingPipeline(null)}><X size={20}/></button>
                      </div>
                      
                      <div className="form-group">
@@ -1228,8 +1253,13 @@ const AppleCommandCenter = () => {
         <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="glass-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{t('modal.deleteTitle')}</h3>
-              <button className="close-btn" onClick={() => setDeleteConfirm(null)}><X size={18}/></button>
+              <div className="modal-header-center">
+                  <button className="modal-back-btn" onClick={() => setDeleteConfirm(null)}>
+                      <ChevronLeft size={24}/>
+                  </button>
+                  <h3>{t('modal.deleteTitle')}</h3>
+              </div>
+              <button className="close-btn" onClick={() => setDeleteConfirm(null)}><X size={20}/></button>
             </div>
             
             <div className="delete-confirm-body">
@@ -1259,12 +1289,15 @@ const AppleCommandCenter = () => {
         <div className="modal-overlay" onClick={() => setAiEnhanceModal({ open: false, pipelineId: null, loading: false, result: null })}>
           <div className="glass-modal ai-enhance-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Wand2 size={20} style={{ color: '#ff9500' }} />
-                <h3>{t('ai.enhanceTitle', 'AI Workflow Enhancement')}</h3>
+              <div className="modal-header-center">
+                  <button className="modal-back-btn" onClick={() => setAiEnhanceModal({ open: false, pipelineId: null, loading: false, result: null })}>
+                      <ChevronLeft size={24}/>
+                  </button>
+                  <Wand2 size={20} style={{ color: '#ff9500' }} />
+                  <h3>{t('ai.enhanceTitle', 'AI Workflow Enhancement')}</h3>
               </div>
               <button className="close-btn" onClick={() => setAiEnhanceModal({ open: false, pipelineId: null, loading: false, result: null })}>
-                <X size={18}/>
+                <X size={20}/>
               </button>
             </div>
             
