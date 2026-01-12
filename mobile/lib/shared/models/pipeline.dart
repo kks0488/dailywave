@@ -15,24 +15,6 @@ class Pipeline {
     this.steps = const [],
   });
 
-  Pipeline copyWith({
-    String? id,
-    String? title,
-    String? subtitle,
-    String? color,
-    String? iconType,
-    List<PipelineStep>? steps,
-  }) {
-    return Pipeline(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      subtitle: subtitle ?? this.subtitle,
-      color: color ?? this.color,
-      iconType: iconType ?? this.iconType,
-      steps: steps ?? this.steps,
-    );
-  }
-
   factory Pipeline.fromJson(Map<String, dynamic> json) {
     return Pipeline(
       id: json['id'] as String,
@@ -72,20 +54,6 @@ class PipelineStep {
     this.description,
     this.status = 'pending',
   });
-
-  PipelineStep copyWith({
-    String? id,
-    String? title,
-    String? description,
-    String? status,
-  }) {
-    return PipelineStep(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      status: status ?? this.status,
-    );
-  }
 
   factory PipelineStep.fromJson(Map<String, dynamic> json) {
     return PipelineStep(
