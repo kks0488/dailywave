@@ -937,7 +937,7 @@ const AppleCommandCenter = () => {
         {/* SETTINGS MODAL */}
         {isSettingsOpen && (
          <div className="modal-overlay" onClick={() => setIsSettingsOpen(false)}>
-             <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
+             <div className="glass-modal settings-modal" onClick={e => e.stopPropagation()}>
                  <div className="modal-header">
                      <div className="modal-header-center">
                          <button className="modal-back-btn" onClick={() => setIsSettingsOpen(false)}>
