@@ -111,7 +111,7 @@ export const askGemini = async (prompt, context = {}) => {
     throw new Error('API key not configured. Please set your Gemini API key in Settings.');
   }
   
-  console.log('Using API key:', apiKey.substring(0, 10) + '...');
+  // API 키 로깅 제거 (보안)
 
   const systemPrompt = `You are DailyWave AI, an ADHD-friendly productivity assistant. 
 Your role is to help users with time blindness and decision paralysis.
