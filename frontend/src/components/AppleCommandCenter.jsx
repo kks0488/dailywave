@@ -62,6 +62,12 @@ const AppleCommandCenter = () => {
     return 'light';
   });
 
+  const nowDate = new Date();
+  const weekdayLabel = new Intl.DateTimeFormat(i18n.language || 'en', { weekday: 'short' }).format(nowDate);
+  const monthLabel = String(nowDate.getMonth() + 1).padStart(2, '0');
+  const dayLabel = String(nowDate.getDate()).padStart(2, '0');
+  const sidebarDate = `${weekdayLabel}, ${monthLabel}.${dayLabel}`;
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
@@ -652,7 +658,7 @@ const AppleCommandCenter = () => {
                  renderedItems.push(
                      <div key="timeline-marker" className="timeline-marker">
                          <div className="line"></div>
-                         <div className="badge">NOW {currentTime}</div>
+                         <div className="badge">{t('status.now', 'Now')} {currentTime}</div>
                          <div className="line"></div>
                      </div>
                  );
@@ -688,9 +694,11 @@ const AppleCommandCenter = () => {
        <aside className="acc-sidebar">
          {/* Logo & Date */}
          <div className="sidebar-top">
-             <div className="acc-logo">ROUTINE</div>
-            <div className="date-badge">
-                {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', weekday: 'short' }).replace(/\//g, '.')}            </div>
+             <div className="acc-logo">{t('sidebar.title', 'Routine')}</div>
+             <div className="date-block">
+                 <span className="date-label">{t('sidebar.today', 'Today')}</span>
+                 <span className="date-value">{sidebarDate}</span>
+             </div>
          </div>
 
           {/* Morning Routines */}
@@ -699,23 +707,25 @@ const AppleCommandCenter = () => {
                <h3>{t('sidebar.morningRoutine')}</h3>
                <button className="add-mini-btn" onClick={() => setAddingRoutineType('morning')}><Plus size={12}/></button>
              </div>
-             {isLoading ? (
-                 <>
-                     <RoutineSkeleton />
-                     <RoutineSkeleton />
-                 </>
-             ) : (
-                 <>
-                     {renderRoutineList('morning')}
-                 </>
-             )}
-             {addingRoutineType === 'morning' && (
-                 <div className="add-routine-form">
-                     <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
-                     <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
-                     <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
-                 </div>
-             )}
+             <div className="routine-list">
+                 {isLoading ? (
+                     <>
+                         <RoutineSkeleton />
+                         <RoutineSkeleton />
+                     </>
+                 ) : (
+                     <>
+                         {renderRoutineList('morning')}
+                     </>
+                 )}
+                 {addingRoutineType === 'morning' && (
+                     <div className="add-routine-form">
+                         <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
+                         <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
+                         <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
+                     </div>
+                 )}
+             </div>
           </div>
 
           {/* Afternoon Routines */}
@@ -724,45 +734,74 @@ const AppleCommandCenter = () => {
                <h3>{t('sidebar.afternoonRoutine')}</h3>
                <button className="add-mini-btn" onClick={() => setAddingRoutineType('afternoon')}><Plus size={12}/></button>
              </div>
-             {isLoading ? (
-                 <>
-                     <RoutineSkeleton />
-                     <RoutineSkeleton />
-                 </>
-             ) : (
-                 <>
-                     {renderRoutineList('afternoon')}
-                 </>
-             )}
-             {addingRoutineType === 'afternoon' && (
-                 <div className="add-routine-form">
-                     <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
-                     <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
-                     <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
-                 </div>
-             )}
+             <div className="routine-list">
+                 {isLoading ? (
+                     <>
+                         <RoutineSkeleton />
+                         <RoutineSkeleton />
+                     </>
+                 ) : (
+                     <>
+                         {renderRoutineList('afternoon')}
+                     </>
+                 )}
+                 {addingRoutineType === 'afternoon' && (
+                     <div className="add-routine-form">
+                         <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
+                         <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
+                         <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
+                     </div>
+                 )}
+             </div>
+          </div>
+
+          <div className="sidebar-footer">
+              <button className="sidebar-settings" onClick={() => setIsSettingsOpen(true)}>
+                  <Settings size={14} />
+                  {t('sidebar.preferences', 'Preferences')}
+              </button>
           </div>
        </aside>
 
         {/* 2. MAIN CONTENT */}
         <main className="acc-main">
-          <header className="acc-header">
-             <div className="header-left">
-               <h1>{focusedPipelineId ? t('header.focusMode') : t('app.name')}</h1>
-             </div>
+          <div className="acc-content">
+            <header className="acc-header">
+               <div className="header-left">
+                 <div>
+                   <h1>{t('app.name')}</h1>
+                   <p className="header-subtitle">
+                     {focusedPipelineId ? t('header.focusMode') : t('app.tagline')}
+                   </p>
+                 </div>
+               </div>
 
-             <div className="acc-actions">
-                <button className="create-pipe-btn" onClick={openPipeModal}>
-                    <Plus size={14}/> {t('header.newWorkflow')}
-                </button>
-                <button className="acc-icon-btn" onClick={toggleTheme} title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}>
-                    {theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
-                </button>
-                <button className="acc-icon-btn" onClick={() => setIsSettingsOpen(true)}><Settings size={18}/></button>
-             </div>
-          </header>
+               <div className="acc-actions">
+                  <div className="acc-status-pill">
+                    <span className="status-dot" />
+                    <span>{t('header.systemStatus', 'System Optimal')}</span>
+                  </div>
+                  <button
+                    className="acc-primary-icon"
+                    onClick={openPipeModal}
+                    title={t('header.newWorkflow')}
+                    aria-label={t('header.newWorkflow')}
+                  >
+                      <Plus size={16}/>
+                  </button>
+                  <button className="acc-icon-btn" onClick={toggleTheme} title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}>
+                      {theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
+                  </button>
+                  <button className="acc-icon-btn" onClick={() => setIsSettingsOpen(true)} title={t('settings.title')} aria-label={t('settings.title')}>
+                    <Settings size={18}/>
+                  </button>
+                  <div className="acc-avatar" title="Profile">
+                    <span>DW</span>
+                  </div>
+               </div>
+            </header>
 
-          <div className="acc-grid">
+            <div className="acc-grid">
 {!isLoading && !focusedPipelineId && (
                   <WhatsNext 
                       pipelines={pipelines} 
@@ -879,6 +918,7 @@ const AppleCommandCenter = () => {
             );
             }))}
          </div>
+        </div>
        </main>
 
         {/* CONTEXT MENU */}

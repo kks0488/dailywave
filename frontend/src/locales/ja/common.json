@@ -4,13 +4,17 @@
     "tagline": "日々の混乱を流れるリズムに"
   },
   "sidebar": {
+    "title": "ルーティン",
+    "today": "今日",
     "morningRoutine": "午前ルーティン",
     "afternoonRoutine": "午後ルーティン",
-    "addPlaceholder": "タスクを入力..."
+    "addPlaceholder": "タスクを入力...",
+    "preferences": "設定"
   },
   "header": {
     "focusMode": "集中モード",
-    "newWorkflow": "新規ワークフロー"
+    "newWorkflow": "新規ワークフロー",
+    "systemStatus": "システム最適"
   },
   "workflow": {
     "create": "ワークフロー作成",

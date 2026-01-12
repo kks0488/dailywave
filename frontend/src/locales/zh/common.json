@@ -4,13 +4,17 @@
     "tagline": "将日常的混乱转化为流动的节奏"
   },
   "sidebar": {
+    "title": "日程",
+    "today": "今天",
     "morningRoutine": "上午日程",
     "afternoonRoutine": "下午日程",
-    "addPlaceholder": "输入任务..."
+    "addPlaceholder": "输入任务...",
+    "preferences": "偏好设置"
   },
   "header": {
     "focusMode": "专注模式",
-    "newWorkflow": "新建工作流"
+    "newWorkflow": "新建工作流",
+    "systemStatus": "系统最佳"
   },
   "workflow": {
     "create": "创建工作流",

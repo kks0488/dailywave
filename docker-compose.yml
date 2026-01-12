@@ -1,3 +1,11 @@
+# project-registry:start
+x-project-registry:
+  name: dailywave
+  port: 9008
+  env: prod
+  updated_at: 2026-01-12T16:55:02Z
+# project-registry:end
+
 services:
   backend:
     build: ./backend

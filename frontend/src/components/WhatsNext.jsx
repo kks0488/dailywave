@@ -169,95 +169,98 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
   if (!hasApiKey()) {
     return (
       <div className="whats-next-card setup-prompt">
-        <Sparkles size={24} className="sparkle-icon" />
-        <h3>{t('ai.setupTitle', "What's Next?")}</h3>
-        <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
-        <button className="setup-btn" onClick={onOpenSettings}>
-          {t('ai.setupButton', 'Set Up AI')}
-          <ChevronRight size={16} />
-        </button>
+        <div className="whats-next-inner">
+          <Sparkles size={24} className="sparkle-icon" />
+          <h3>{t('ai.setupTitle', "What's Next?")}</h3>
+          <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
+          <button className="setup-btn" onClick={onOpenSettings}>
+            {t('ai.setupButton', 'Set Up AI')}
+            <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={`whats-next-card ${recommendation ? 'has-recommendation' : ''}`}>
-      <div className="whats-next-header">
-        <div className="header-title">
-          <Sparkles size={18} className="sparkle-icon" />
-          <h3>{t('ai.whatsNext', "What's Next?")}</h3>
-        </div>
-        
-        <div className="energy-selector">
-          {['low', 'medium', 'high'].map(level => (
-            <button
-              key={level}
-              className={`energy-btn ${energy === level ? 'active' : ''}`}
-              onClick={() => setEnergy(level)}
-              title={t(`ai.energy.${level}`, level)}
-            >
-              {level === 'high' ? <Zap size={14} /> : 
-               level === 'low' ? <BatteryLow size={14} /> : 
-               <BatteryMedium size={14} />}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="ai-tabs">
-        <button 
-          className={`ai-tab ${activeTab === 'recommend' ? 'active' : ''}`}
-          onClick={() => setActiveTab('recommend')}
-        >
-          <Sparkles size={14} />
-          {t('ai.tabRecommend', 'Recommend')}
-        </button>
-        <button 
-          className={`ai-tab ${activeTab === 'quick' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('quick'); if (!quickActions) fetchQuickActions(); }}
-        >
-          <ListTodo size={14} />
-          {t('ai.tabQuick', 'Quick Actions')}
-        </button>
-        <button 
-          className={`ai-tab ${activeTab === 'summary' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('summary'); if (!dailySummary) fetchDailySummary(); }}
-        >
-          <Trophy size={14} />
-          {t('ai.tabSummary', 'Daily Summary')}
-        </button>
-      </div>
-
-      {activeTab === 'quick' && (
-        <div className="quick-actions-content">
-          {isLoading ? (
-            <div className="loading-state">
-              <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>
-            </div>
-          ) : quickActions ? (
-            <div className="quick-actions-list">
-              {quickActions.map((action, idx) => (
-                <div key={idx} className={`quick-action-item ${action.type}`}>
-                  <span className="action-emoji">{action.emoji}</span>
-                  <div className="action-details">
-                    <span className="action-text">{action.action}</span>
-                    <span className="action-duration">{action.duration}min</span>
-                  </div>
-                </div>
-              ))}
-              <button className="refresh-btn small" onClick={fetchQuickActions} disabled={isLoading}>
-                <RotateCcw size={12} />
-                {t('ai.refresh', 'Refresh')}
+      <div className="whats-next-inner">
+        <div className="whats-next-header">
+          <div className="header-title">
+            <Sparkles size={18} className="sparkle-icon" />
+            <h3>{t('ai.whatsNext', "What's Next?")}</h3>
+          </div>
+          
+          <div className="energy-selector">
+            {['low', 'medium', 'high'].map(level => (
+              <button
+                key={level}
+                className={`energy-btn ${energy === level ? 'active' : ''}`}
+                onClick={() => setEnergy(level)}
+                title={t(`ai.energy.${level}`, level)}
+              >
+                {level === 'high' ? <Zap size={14} /> : 
+                 level === 'low' ? <BatteryLow size={14} /> : 
+                 <BatteryMedium size={14} />}
               </button>
-            </div>
-          ) : (
-            <button className="ask-ai-btn small" onClick={fetchQuickActions} disabled={isLoading}>
-              <ListTodo size={16} />
-              {t('ai.getQuickActions', 'Get Quick Actions')}
-            </button>
-          )}
+            ))}
+          </div>
         </div>
-      )}
+
+        <div className="ai-tabs">
+          <button 
+            className={`ai-tab ${activeTab === 'recommend' ? 'active' : ''}`}
+            onClick={() => setActiveTab('recommend')}
+          >
+            <Sparkles size={14} />
+            {t('ai.tabRecommend', 'Recommend')}
+          </button>
+          <button 
+            className={`ai-tab ${activeTab === 'quick' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('quick'); if (!quickActions) fetchQuickActions(); }}
+          >
+            <ListTodo size={14} />
+            {t('ai.tabQuick', 'Quick Actions')}
+          </button>
+          <button 
+            className={`ai-tab ${activeTab === 'summary' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('summary'); if (!dailySummary) fetchDailySummary(); }}
+          >
+            <Trophy size={14} />
+            {t('ai.tabSummary', 'Daily Summary')}
+          </button>
+        </div>
+
+        {activeTab === 'quick' && (
+          <div className="quick-actions-content">
+            {isLoading ? (
+              <div className="loading-state">
+                <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+              </div>
+            ) : quickActions ? (
+              <div className="quick-actions-list">
+                {quickActions.map((action, idx) => (
+                  <div key={idx} className={`quick-action-item ${action.type}`}>
+                    <span className="action-emoji">{action.emoji}</span>
+                    <div className="action-details">
+                      <span className="action-text">{action.action}</span>
+                      <span className="action-duration">{action.duration}min</span>
+                    </div>
+                  </div>
+                ))}
+                <button className="refresh-btn small" onClick={fetchQuickActions} disabled={isLoading}>
+                  <RotateCcw size={12} />
+                  {t('ai.refresh', 'Refresh')}
+                </button>
+              </div>
+            ) : (
+              <button className="ask-ai-btn small" onClick={fetchQuickActions} disabled={isLoading}>
+                <ListTodo size={16} />
+                {t('ai.getQuickActions', 'Get Quick Actions')}
+              </button>
+            )}
+          </div>
+        )}
 
       {activeTab === 'summary' && (
         <div className="daily-summary-content">
@@ -366,30 +369,31 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
         </div>
       ) : null}
 
-      <div className="ai-chat-section">
-        <button 
-          className={`chat-toggle ${chatMode ? 'active' : ''}`}
-          onClick={() => setChatMode(!chatMode)}
-        >
-          <MessageCircle size={14} />
-          {t('ai.chatToggle', 'AI Command')}
-        </button>
-        
-        {chatMode && (
-          <form onSubmit={handleChatSubmit} className="chat-form">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder={t('ai.chatPlaceholder', 'e.g., "Add exercise to routine at 9am"')}
-              className="chat-input"
-              disabled={isLoading}
-            />
-            <button type="submit" className="chat-send" disabled={isLoading || !chatInput.trim()}>
-              <Send size={16} />
-            </button>
-          </form>
-        )}
+        <div className="ai-chat-section">
+          <button 
+            className={`chat-toggle ${chatMode ? 'active' : ''}`}
+            onClick={() => setChatMode(!chatMode)}
+          >
+            <MessageCircle size={14} />
+            {t('ai.chatToggle', 'AI Command')}
+          </button>
+          
+          {chatMode && (
+            <form onSubmit={handleChatSubmit} className="chat-form">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={t('ai.chatPlaceholder', 'e.g., "Add exercise to routine at 9am"')}
+                className="chat-input"
+                disabled={isLoading}
+              />
+              <button type="submit" className="chat-send" disabled={isLoading || !chatInput.trim()}>
+                <Send size={16} />
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

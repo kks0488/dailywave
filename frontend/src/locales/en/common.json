@@ -4,13 +4,17 @@
     "tagline": "One clear next step. Then the next."
   },
   "sidebar": {
+    "title": "Routine",
+    "today": "Today",
     "morningRoutine": "Morning Routine",
     "afternoonRoutine": "Afternoon Routine",
-    "addPlaceholder": "Enter task..."
+    "addPlaceholder": "Enter task...",
+    "preferences": "Preferences"
   },
   "header": {
     "focusMode": "Focus Mode",
-    "newWorkflow": "New Workflow"
+    "newWorkflow": "New Workflow",
+    "systemStatus": "System Optimal"
   },
   "workflow": {
     "create": "Create Workflow",
