@@ -2,6 +2,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
+    /* === Design System: Spacing Scale (8pt grid) === */
+    --space-1: 4px;   /* 0.5x */
+    --space-2: 8px;   /* 1x */
+    --space-3: 12px;  /* 1.5x */
+    --space-4: 16px;  /* 2x */
+    --space-5: 20px;  /* 2.5x */
+    --space-6: 24px;  /* 3x */
+    --space-7: 32px;  /* 4x */
+    --space-8: 40px;  /* 5x */
+    --space-9: 48px;  /* 6x */
+    --space-10: 64px; /* 8x */
+
+    /* === Design System: Border Radius === */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius-full: 9999px;
+
+    /* === Design System: Typography === */
+    --font-xs: 10px;
+    --font-sm: 12px;
+    --font-base: 14px;
+    --font-md: 16px;
+    --font-lg: 18px;
+    --font-xl: 20px;
+    --font-2xl: 24px;
+
     /* Light Theme (Default) */
     --bg-main: #f8fafc;
     --bg-sidebar: #ffffff;
@@ -37,40 +66,102 @@
 
 [data-theme="dark"] {
     /* Dark Theme - Apple HIG Elevated Colors */
-    --bg-main: #0b1220;
-    --bg-sidebar: #0f172a;
-    --bg-card: rgba(15, 23, 42, 0.78);
-    --bg-card-strong: #0f172a;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #8b9bb5; /* HIG: 대비비 5.2:1로 개선 (기존 #64748b는 3.9:1) */
-    --border-light: rgba(148, 163, 184, 0.2);
-    --border-subtle: rgba(148, 163, 184, 0.12);
-    --hover-bg: rgba(59, 130, 246, 0.2);
-    --hover-item-bg: rgba(148, 163, 184, 0.08);
-    --btn-icon-bg: rgba(148, 163, 184, 0.15); /* 약간 더 밝게 */
-    --btn-icon-hover: rgba(59, 130, 246, 0.35);
-    --input-bg: rgba(30, 41, 59, 0.95);
-    --input-bg-alt: rgba(44, 55, 72, 0.95); /* 더 밝은 slate */
-    --modal-overlay: rgba(0, 0, 0, 0.6);
-    --shadow-card: rgba(2, 6, 23, 0.4);
-    --shadow-card-hover: rgba(2, 6, 23, 0.6);
-    --timeline-line: rgba(148, 163, 184, 0.3);
-    /* HIG: Elevated background for modals - 기본 배경보다 밝게 */
-    --glass-modal-bg: rgba(44, 55, 72, 0.98);
-    --glass-textarea-bg: rgba(30, 41, 59, 0.8);
-    --glass-input-bg: rgba(44, 55, 72, 0.95);
-    --glass-input-focus-bg: rgba(51, 65, 85, 0.98);
-    --step-indicator-bg: rgba(44, 55, 72, 0.95);
-    --step-indicator-border: rgba(148, 163, 184, 0.35);
-    --step-indicator-done-bg: rgba(148, 163, 184, 0.25);
-    --step-indicator-done-color: #94a3b8;
-    --card-border: rgba(148, 163, 184, 0.2);
+    --bg-main: #0f1419; /* 더 진한 배경 */
+    --bg-sidebar: #161b22;
+    --bg-card: rgba(30, 38, 50, 0.85); /* 더 밝아진 카드 (elevation) */
+    --bg-card-strong: #1e2632;
+    --text-primary: #f0f3f6;
+    --text-secondary: #8b99a8;
+    --text-muted: #8b9bb5; /* HIG: 대비비 5.2:1 */
+    --border-light: rgba(148, 163, 184, 0.18);
+    --border-subtle: rgba(148, 163, 184, 0.1);
+    --hover-bg: rgba(59, 130, 246, 0.18);
+    --hover-item-bg: rgba(148, 163, 184, 0.06);
+    --btn-icon-bg: rgba(148, 163, 184, 0.12);
+    --btn-icon-hover: rgba(59, 130, 246, 0.28);
+    --input-bg: rgba(22, 27, 34, 0.95);
+    --input-bg-alt: rgba(30, 38, 50, 0.95);
+    --modal-overlay: rgba(0, 0, 0, 0.65);
+    /* HIG: 다크모드는 shadow 대신 subtle glow 사용 */
+    --shadow-card: rgba(0, 0, 0, 0.3);
+    --shadow-card-hover: rgba(0, 0, 0, 0.4);
+    --timeline-line: rgba(148, 163, 184, 0.25);
+    /* HIG: Elevated surfaces */
+    --glass-modal-bg: rgba(38, 46, 58, 0.98);
+    --glass-textarea-bg: rgba(22, 27, 34, 0.9);
+    --glass-input-bg: rgba(30, 38, 50, 0.95);
+    --glass-input-focus-bg: rgba(38, 46, 58, 0.98);
+    --step-indicator-bg: rgba(30, 38, 50, 0.95);
+    --step-indicator-border: rgba(148, 163, 184, 0.25);
+    --step-indicator-done-bg: rgba(148, 163, 184, 0.18);
+    --step-indicator-done-color: #8b99a8;
+    --card-border: rgba(148, 163, 184, 0.12);
     /* iOS Dark Mode system colors */
-    --dw-primary: #0a84ff; /* iOS 다크모드 시스템 블루 */
+    --dw-primary: #58a6ff; /* GitHub blue - 더 밝고 선명 */
+    --dw-primary-weak: rgba(88, 166, 255, 0.15);
 }
 
 * { box-sizing: border-box; }
+
+/* === Design System: Button Base === */
+.btn {
+    border: none;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.96); }
+
+/* Button Sizes */
+.btn-sm { padding: var(--space-2) var(--space-3); font-size: var(--font-sm); border-radius: var(--radius-sm); }
+.btn-md { padding: var(--space-3) var(--space-4); font-size: var(--font-base); border-radius: var(--radius-md); }
+.btn-lg { padding: var(--space-4) var(--space-6); font-size: var(--font-md); border-radius: var(--radius-lg); }
+
+/* Button Variants */
+.btn-primary { background: var(--dw-primary); color: white; }
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-secondary { background: var(--btn-icon-bg); color: var(--text-primary); }
+.btn-secondary:hover { background: var(--hover-bg); }
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--hover-item-bg); color: var(--text-primary); }
+.btn-danger { background: rgba(255, 59, 48, 0.1); color: #ff3b30; }
+.btn-danger:hover { background: rgba(255, 59, 48, 0.2); }
+
+[data-theme="dark"] .btn-danger { color: #ff453a; }
+
+/* Icon Button (square, for icons only) */
+.btn-icon {
+    width: 44px; height: 44px;
+    padding: 0;
+    border-radius: var(--radius-full);
+    background: var(--btn-icon-bg);
+    color: var(--text-secondary);
+}
+.btn-icon:hover { background: var(--btn-icon-hover); color: var(--text-primary); }
+
+/* === Design System: Focus States (Accessibility) === */
+:focus-visible {
+    outline: 2px solid var(--dw-primary);
+    outline-offset: 2px;
+}
+:focus:not(:focus-visible) {
+    outline: none;
+}
+/* Remove focus outline for mouse users, keep for keyboard */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--dw-primary);
+    outline-offset: 2px;
+}
 
 html, body, #root {
   width: 100vw; height: 100vh;
@@ -92,7 +183,7 @@ html, body, #root {
 .acc-sidebar {
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border-light);
-    padding: 32px 24px 120px;
+    padding: var(--space-7) var(--space-6) 128px; /* 128px = 16x8pt */
     display: flex; flex-direction: column;
     box-shadow: 4px 0 24px -12px rgba(15, 23, 42, 0.08);
     z-index: 10;
@@ -253,6 +344,8 @@ html, body, #root {
     background: var(--input-bg-alt); padding: 12px; border-radius: 16px;
     flex-shrink: 0;
     border: 1px solid var(--border-subtle);
+    overflow: hidden; /* Fix: time picker overflow */
+    max-width: 100%;
 }
 .mini-input {
     border: 1px solid var(--border-subtle);
@@ -334,6 +427,14 @@ html, body, #root {
         radial-gradient(circle at 50% 70%, rgba(236, 254, 255, 0.55), transparent 55%);
     z-index: 0;
     pointer-events: none;
+}
+
+/* Dark mode: subtle, non-distracting gradients */
+[data-theme="dark"] .acc-main::before {
+    background:
+        radial-gradient(circle at 12% 10%, rgba(59, 130, 246, 0.06), transparent 45%),
+        radial-gradient(circle at 80% 0%, rgba(99, 102, 241, 0.04), transparent 48%),
+        radial-gradient(circle at 50% 70%, rgba(34, 211, 238, 0.03), transparent 55%);
 }
 .acc-content {
     position: relative;
@@ -465,7 +566,7 @@ html, body, #root {
     flex: 1;
     background: var(--bg-card);
     border-radius: 28px;
-    padding: 28px 30px;
+    padding: var(--space-6) var(--space-7); /* 24px 32px */
     box-shadow: 0 10px 30px var(--shadow-card);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -474,9 +575,22 @@ html, body, #root {
     border: 1px solid var(--card-border);
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
-.acc-card:hover { 
-    box-shadow: 0 16px 40px var(--shadow-card-hover); 
+.acc-card:hover {
+    box-shadow: 0 16px 40px var(--shadow-card-hover);
     transform: translateY(-3px);
+}
+
+/* Dark mode: subtle top highlight for elevation */
+[data-theme="dark"] .acc-card {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow:
+        0 10px 30px var(--shadow-card),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark"] .acc-card:hover {
+    box-shadow:
+        0 16px 40px var(--shadow-card-hover),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .card-header {
@@ -1402,8 +1516,8 @@ html, body, #root {
     }
 
     .acc-icon-btn {
-        width: 36px;
-        height: 36px;
+        width: 44px; /* HIG: maintain 44pt touch target */
+        height: 44px;
     }
 
     .acc-card {
