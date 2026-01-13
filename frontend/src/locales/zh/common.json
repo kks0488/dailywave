@@ -13,6 +13,7 @@
   },
   "header": {
     "focusMode": "专注模式",
+    "exitFocus": "退出专注",
     "newWorkflow": "新建工作流",
     "systemStatus": "系统最佳"
   },
@@ -92,6 +93,9 @@
   },
   "ai": {
     "whatsNext": "接下来做什么?",
+    "tabRecommend": "现在做什么?",
+    "tabQuick": "快速任务",
+    "tabSummary": "今日总结",
     "setupTitle": "接下来做什么?",
     "setupDesc": "连接AI获取个性化任务推荐",
     "setupButton": "设置AI",

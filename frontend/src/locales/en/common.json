@@ -13,6 +13,7 @@
   },
   "header": {
     "focusMode": "Focus Mode",
+    "exitFocus": "Exit Focus",
     "newWorkflow": "New Workflow",
     "systemStatus": "System Optimal"
   },
@@ -92,6 +93,9 @@
   },
   "ai": {
     "whatsNext": "What's Next?",
+    "tabRecommend": "What Now?",
+    "tabQuick": "Quick Tasks",
+    "tabSummary": "Summary",
     "setupTitle": "What's Next?",
     "setupDesc": "Connect AI to get personalized task recommendations",
     "setupButton": "Set Up AI",

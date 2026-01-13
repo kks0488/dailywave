@@ -97,7 +97,7 @@
   gap: 4px;
   background: rgba(255, 255, 255, 0.7);
   padding: 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
 }
 
@@ -322,47 +322,20 @@
   margin-top: 12px;
 }
 
-/* AI Chat Section */
+/* AI Chat Section - Always visible with hints */
 .ai-chat-section {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--border-light);
 }
 
-.chat-toggle {
-  background: transparent;
-  border: 1px solid var(--border-light);
-  color: var(--text-secondary);
-  padding: 8px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s;
-}
-
-.chat-toggle:hover {
-  border-color: var(--dw-primary);
-  color: var(--dw-primary);
-}
-
-.chat-toggle.active {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: var(--dw-primary);
-  color: var(--dw-primary);
-}
 
 .chat-form {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
-  animation: slideDown 0.2s ease;
   background: var(--bg-card-strong);
   border: 1px solid var(--border-subtle);
-  border-radius: 999px;
+  border-radius: var(--radius-2xl);
   padding: 6px 8px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
 }
@@ -407,13 +380,14 @@
   background: var(--text-primary);
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 44px;  /* HIG: 44pt minimum touch target */
+  height: 44px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
+  flex-shrink: 0;
   transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
@@ -428,13 +402,14 @@
   cursor: not-allowed;
 }
 
+/* AI Tabs - Improved for better intuitiveness */
 .ai-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 20px;
   padding: 4px;
   background: rgba(255, 255, 255, 0.7);
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
 }
 
@@ -442,29 +417,51 @@
   flex: 1;
   background: transparent;
   border: none;
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  padding: 12px 8px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   transition: all 0.2s;
+  min-height: 60px;
+}
+
+.ai-tab svg {
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
 }
 
 .ai-tab:hover {
   color: var(--text-primary);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.ai-tab:hover svg {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.ai-tab .tab-label {
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .ai-tab.active {
   background: var(--bg-card-strong);
   color: var(--dw-primary);
   box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+}
+
+.ai-tab.active svg {
+  opacity: 1;
 }
 
 .quick-actions-content,
@@ -663,22 +660,61 @@
     padding: 14px 20px;
   }
 
+  /* Small buttons should stay compact */
+  .ask-ai-btn.small,
+  .refresh-btn.small {
+    width: auto;
+    padding: 12px 20px;
+    font-size: 14px;
+    align-self: center;
+  }
+
   .summary-stats {
     flex-wrap: wrap;
     gap: 16px;
   }
 
   .chat-form {
-    flex-direction: column;
+    flex-direction: row; /* Keep horizontal on mobile */
+    align-items: center;
   }
 
+  .chat-input {
+    flex: 1;
+  }
+
+  /* HIG: Keep send button as 44px circle */
   .chat-send {
-    width: 100%;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 
+  /* AI tabs - compact vertical layout for mobile */
   .ai-tabs {
-    flex-direction: column;
+    flex-direction: row;
+    gap: 4px;
+    padding: 4px;
   }
+
+  .ai-tab {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 6px;
+    min-height: 52px;
+    gap: 3px;
+  }
+
+  .ai-tab svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .ai-tab .tab-label {
+    font-size: 10px;
+  }
+
 }
 
 @media (max-width: 480px) {
@@ -743,4 +779,15 @@
 [data-theme="dark"] .encouragement {
   color: var(--color-success);
   background: var(--color-success-bg);
+}
+
+
+[data-theme="dark"] .chat-send {
+  background: var(--dw-primary);
+  color: white;
+}
+
+[data-theme="dark"] .chat-send:hover:not(:disabled) {
+  background: #79b8ff;
+  box-shadow: 0 8px 20px rgba(88, 166, 255, 0.3);
 }

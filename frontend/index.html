@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>DailyWave - Transform Your Daily Chaos Into a Flowing Rhythm</title>
     <meta name="description" content="DailyWave is a workflow and routine management app that helps you organize your day with visual pipelines and daily routines." />
     
@@ -19,9 +19,16 @@
     <meta name="twitter:title" content="DailyWave" />
     <meta name="twitter:description" content="Transform your daily chaos into a flowing rhythm" />
     
-    <meta name="theme-color" content="#0A84FF" />
+    <meta name="theme-color" content="#f8fafc" />
+    <style>
+      /* iOS safe area: 상태바 배경색 */
+      html { background-color: #f8fafc; }
+      @media (prefers-color-scheme: dark) {
+        html { background-color: #0f1419; }
+      }
+    </style>
   </head>
-  <body>
+  <body style="background-color: #f8fafc;">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>

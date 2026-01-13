@@ -64,7 +64,7 @@
     --dw-primary-weak: #dbeafe;
 
     /* === Semantic Colors === */
-    --color-success: var(--color-success);
+    --color-success: #22c55e;
     --color-success-bg: rgba(34, 197, 94, 0.12);
     --color-warning: #f59e0b;
     --color-warning-bg: rgba(245, 158, 11, 0.12);
@@ -72,8 +72,20 @@
     --color-danger-bg: rgba(239, 68, 68, 0.12);
     --color-info: #3b82f6;
     --color-info-bg: rgba(59, 130, 246, 0.12);
-    --color-accent: var(--color-accent); /* indigo/purple */
+    --color-accent: #6366f1;
     --color-accent-bg: rgba(99, 102, 241, 0.12);
+
+    /* === Apple System Colors === */
+    --apple-red: #ff3b30;
+    --apple-orange: #ff9500;
+    --apple-yellow: #ffcc00;
+    --apple-green: #34c759;
+    --apple-teal: #30b0c7;
+    --apple-cyan: #32ade6;
+    --apple-blue: #007aff;
+    --apple-indigo: #5856d6;
+    --apple-purple: #af52de;
+    --apple-pink: #ff2d55;
 }
 
 [data-theme="dark"] {
@@ -187,13 +199,33 @@ a:focus-visible {
     outline-offset: 2px;
 }
 
-html, body, #root {
-  width: 100vw; height: 100vh;
-  margin: 0; padding: 0;
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-main);
+  min-height: 100%;
+  overflow-x: hidden; /* 가로 스크롤 방지 */
+}
+
+/* iOS safe-area 배경색 확장 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -100px 0 0 0;
+  background-color: var(--bg-main);
+  z-index: -1;
+  pointer-events: none;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100vh;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background-color: var(--bg-main);
   color: var(--text-primary);
-  overflow: hidden; 
+  overflow-x: hidden;
+  position: relative;
 }
 
 .acc-container {
@@ -295,32 +327,6 @@ html, body, #root {
     border-left: 1px solid var(--border-subtle);
 }
 
-.sidebar-footer {
-    margin-top: auto;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-subtle);
-}
-.sidebar-settings {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: none;
-    background: transparent;
-    font-size: var(--font-sm);
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: color 0.2s, background 0.2s;
-}
-.sidebar-settings:hover {
-    color: var(--text-primary);
-    background: var(--hover-bg);
-}
 
 .acc-routine-item {
     display: flex; align-items: flex-start; gap: 12px;
@@ -340,19 +346,33 @@ html, body, #root {
 .acc-routine-item.done { opacity: 0.4; }
 
 .del-btn {
-    position: absolute; right: 10px;
+    position: absolute; right: 4px;
     background: transparent; border: none; color: var(--color-danger);
     opacity: 0; transition: opacity 0.2s;
-    cursor: pointer; padding: 4px;
+    cursor: pointer;
+    width: 44px; height: 44px; /* HIG: 44pt touch target */
+    display: flex; align-items: center; justify-content: center;
 }
 .acc-routine-item:hover .del-btn { opacity: 1; }
 
-.checkbox-circle {
+button.checkbox-circle {
     width: 18px; height: 18px; border-radius: 50%;
     border: 2px solid rgba(148, 163, 184, 0.6);
     display: flex; align-items: center; justify-content: center;
     color: white; transition: all 0.2s;
     background: var(--bg-card-strong);
+    position: relative;
+    flex-shrink: 0;
+    padding: 0;
+    cursor: pointer;
+}
+/* HIG: 44pt touch target via invisible expanded area */
+.checkbox-circle::before {
+    content: '';
+    position: absolute;
+    width: 44px; height: 44px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
 }
 .checkbox-circle.checked { background: var(--dw-primary); border-color: var(--dw-primary); }
 .checkbox-circle.evening.checked { background: var(--color-accent); border-color: var(--color-accent); }
@@ -416,6 +436,10 @@ html, body, #root {
     transition: transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
 }
+.confirm-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dw-primary), 0 10px 20px rgba(15, 23, 42, 0.12);
+}
 .confirm-btn:hover {
     transform: translateY(-1px);
 }
@@ -434,7 +458,7 @@ html, body, #root {
     font-weight: 800;
     color: var(--dw-primary);
     background: rgba(59, 130, 246, 0.08);
-    padding: 2px 10px;
+    padding: 4px 8px; /* 8pt grid */
     border-radius: 999px;
     text-transform: uppercase;
     letter-spacing: 0.24em;
@@ -508,7 +532,7 @@ html, body, #root {
 /* Refined Button */
 .create-pipe-btn {
     border: none; background: var(--text-primary); color: var(--bg-card);
-    padding: 0 20px; height: 36px; /* Explicit height */
+    padding: 0 20px; height: 44px; /* HIG: 44pt touch target */
     border-radius: var(--radius-full); /* Pill */
     font-size: var(--font-base); font-weight: 600; cursor: pointer;
     display: flex; gap: 8px; align-items: center; justify-content: center;
@@ -652,11 +676,18 @@ html, body, #root {
 .icon-wrapper.indigo { background: linear-gradient(135deg, #5856D6, #BF5AF2); }
 .icon-wrapper.yellow { background: linear-gradient(135deg, #FFCC00, #FFD60A); }
 
-.header-text h2 { 
+.header-text {
+    min-width: 0; /* Allow text truncation */
+    flex: 1;
+}
+.header-text h2 {
     font-size: var(--font-md);
     font-weight: 700;
     margin: 0 0 6px 0;
     letter-spacing: -0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .header-text p {
     font-size: var(--font-xs);
@@ -665,12 +696,19 @@ html, body, #root {
     font-weight: 700;
     letter-spacing: 0.24em;
     text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.card-actions { margin-left: auto; display: flex; gap: 6px; }
+.card-actions { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; }
+
+/* Desktop: mobile-only 숨김, desktop-only 표시 */
+.mobile-only { display: none; }
+.desktop-only { display: flex; }
 /* HIG: 44pt minimum touch target */
 .icon-action-btn {
-    width: 40px; height: 40px; border-radius: 50%;
+    width: 44px; height: 44px; border-radius: 50%; /* HIG: 44pt touch target */
     border: 1px solid transparent; background: var(--btn-icon-bg); color: var(--text-secondary);
     display: flex; align-items: center; justify-content: center; cursor: pointer;
     transition: all 0.2s;
@@ -710,15 +748,15 @@ html, body, #root {
 }
 .color-dot-select.blue { background: var(--dw-primary); }
 .color-dot-select.red { background: var(--color-danger); }
-.color-dot-select.green { background: #34c759; }
-.color-dot-select.purple { background: #af52de; }
-.color-dot-select.orange { background: #ff9500; }
+.color-dot-select.green { background: var(--apple-green); }
+.color-dot-select.purple { background: var(--apple-purple); }
+.color-dot-select.orange { background: var(--apple-orange); }
 /* New Colors */
-.color-dot-select.pink { background: #ff2d55; }
-.color-dot-select.cyan { background: #32ade6; }
-.color-dot-select.teal { background: #30b0c7; }
-.color-dot-select.indigo { background: #5856d6; }
-.color-dot-select.yellow { background: #ffcc00; }
+.color-dot-select.pink { background: var(--apple-pink); }
+.color-dot-select.cyan { background: var(--apple-cyan); }
+.color-dot-select.teal { background: var(--apple-teal); }
+.color-dot-select.indigo { background: var(--apple-indigo); }
+.color-dot-select.yellow { background: var(--apple-yellow); }
 
 .color-dot-select.selected {
     border-color: #1d1d1f;
@@ -731,10 +769,30 @@ html, body, #root {
     flex: 1;
     display: flex; flex-direction: column;
     gap: 20px;
-    overflow-y: auto; 
+    overflow-y: auto;
     padding-bottom: 140px;
-    padding-right: 6px; 
-    -ms-overflow-style: none; scrollbar-width: none;
+}
+
+/* Hidden on desktop, shown on mobile */
+.mobile-add-workflow-btn {
+    display: none;
+}
+
+/* 집중모드 종료 버튼 */
+.exit-focus-btn {
+    display: none;
+}
+
+.mobile-settings-btn {
+    display: none;
+}
+
+.mobile-header-actions {
+    display: none;
+}
+
+.mobile-theme-btn {
+    display: none;
 }
 
 /* Steps Container */
@@ -823,19 +881,19 @@ html, body, #root {
     background: var(--active-color, #1d1d1f); 
 }
 .acc-step.active.blue .step-indicator { background: linear-gradient(135deg, var(--dw-primary), #00C7BE); }
-.acc-step.active.red .step-indicator { background: linear-gradient(135deg, var(--color-danger), #ff9500); }
-.acc-step.active.green .step-indicator { background: linear-gradient(135deg, #34c759, #30b0c7); }
-.acc-step.active.purple .step-indicator { background: linear-gradient(135deg, #af52de, #5856d6); }
-.acc-step.active.indigo .step-indicator { background: linear-gradient(135deg, #5856D6, #BF5AF2); }
-.acc-step.active.pink .step-indicator { background: linear-gradient(135deg, #FF2D55, #FF375F); }
-.acc-step.active.cyan .step-indicator { background: linear-gradient(135deg, #32ADE6, #5AC8FA); }
-.acc-step.active.teal .step-indicator { background: linear-gradient(135deg, #30B0C7, #5AC8FA); }
-.acc-step.active.yellow .step-indicator { background: linear-gradient(135deg, #FFCC00, #FFD60A); }
-.acc-step.active.orange .step-indicator { background: linear-gradient(135deg, #FF9F0A, #FFD60A); }
+.acc-step.active.red .step-indicator { background: linear-gradient(135deg, var(--color-danger), var(--apple-orange)); }
+.acc-step.active.green .step-indicator { background: linear-gradient(135deg, var(--apple-green), var(--apple-teal)); }
+.acc-step.active.purple .step-indicator { background: linear-gradient(135deg, var(--apple-purple), var(--apple-indigo)); }
+.acc-step.active.indigo .step-indicator { background: linear-gradient(135deg, var(--apple-indigo), var(--apple-purple)); }
+.acc-step.active.pink .step-indicator { background: linear-gradient(135deg, var(--apple-pink), #FF375F); }
+.acc-step.active.cyan .step-indicator { background: linear-gradient(135deg, var(--apple-cyan), #5AC8FA); }
+.acc-step.active.teal .step-indicator { background: linear-gradient(135deg, var(--apple-teal), #5AC8FA); }
+.acc-step.active.yellow .step-indicator { background: linear-gradient(135deg, var(--apple-yellow), #FFD60A); }
+.acc-step.active.orange .step-indicator { background: linear-gradient(135deg, var(--apple-orange), #FFD60A); }
 
-.white-dot { 
-    width: 5px; height: 5px; background: white; border-radius: 50%; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15); 
+.white-dot {
+    width: 4px; height: 4px; background: white; border-radius: 50%; /* 8pt grid */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
 
 .step-label {
@@ -856,8 +914,8 @@ html, body, #root {
     position: absolute; top: -20px;
     font-size: var(--font-xs); font-weight: 800; color: white;
     /* Use Custom Color if available, else default to black */
-    background: var(--active-color, #1d1d1f); 
-    padding: 3px 8px; border-radius: 999px;
+    background: var(--active-color, var(--text-primary));
+    padding: 4px 8px; border-radius: 999px; /* 8pt grid */
     text-transform: uppercase;
     letter-spacing: 0.2em;
 }
@@ -865,14 +923,14 @@ html, body, #root {
 /* Named Color Supports for Now Tag */
 .acc-step.active.blue .now-tag { background: var(--dw-primary); }
 .acc-step.active.red .now-tag { background: var(--color-danger); }
-.acc-step.active.green .now-tag { background: #34c759; }
-.acc-step.active.purple .now-tag { background: #af52de; }
-.acc-step.active.indigo .now-tag { background: #5856d6; }
-.acc-step.active.pink .now-tag { background: #ff2d55; }
-.acc-step.active.cyan .now-tag { background: #32ade6; }
-.acc-step.active.teal .now-tag { background: #30b0c7; }
-.acc-step.active.yellow .now-tag { background: #ffcc00; color: black; } /* Yellow needs black text */
-.acc-step.active.orange .now-tag { background: #ff9500; }
+.acc-step.active.green .now-tag { background: var(--apple-green); }
+.acc-step.active.purple .now-tag { background: var(--apple-purple); }
+.acc-step.active.indigo .now-tag { background: var(--apple-indigo); }
+.acc-step.active.pink .now-tag { background: var(--apple-pink); }
+.acc-step.active.cyan .now-tag { background: var(--apple-cyan); }
+.acc-step.active.teal .now-tag { background: var(--apple-teal); }
+.acc-step.active.yellow .now-tag { background: var(--apple-yellow); color: black; } /* Yellow needs black text */
+.acc-step.active.orange .now-tag { background: var(--apple-orange); }
 
 /* --- GLASS MODAL (R24) --- */
 .modal-overlay {
@@ -901,6 +959,7 @@ html, body, #root {
 .settings-modal {
     width: 400px;
 }
+
 
 /* ... keyframes ... */
 
@@ -989,6 +1048,10 @@ html, body, #root {
     transition: transform 0.1s;
 }
 .status-option:hover { transform: scale(1.02); }
+.status-option:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dw-primary);
+}
 /* MEMO / MANUAL SECTION in MODAL */
 .memo-section {
     width: 100%;
@@ -1020,9 +1083,9 @@ html, body, #root {
 }
 
 .dot { width: 10px; height: 10px; border-radius: 50%; }
-.dot.done { background: #8e8e93; }
+.dot.done { background: var(--text-muted); }
 .dot.active { background: var(--dw-primary); }
-.dot.pending { background: #c7c7cc; }
+.dot.pending { background: var(--border-light); }
 .dot.locked { background: var(--color-danger); }
 
 .status-option.done { background: var(--hover-bg); color: var(--text-primary); }
@@ -1040,8 +1103,13 @@ html, body, #root {
     padding-top: 20px;
 }
 .action-btn {
-    border: none; background: transparent; 
+    border: none; background: transparent;
     font-weight: 600; cursor: pointer; font-size: var(--font-base);
+}
+.action-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--dw-primary);
+    border-radius: var(--radius-sm);
 }
 .action-btn.text { color: var(--text-secondary); }
 .action-btn.danger { color: var(--color-danger); }
@@ -1063,7 +1131,7 @@ html, body, #root {
     align-items: center;
 }
 .color-dot-select {
-    width: 24px; height: 24px;
+    width: 32px; height: 32px; /* Larger for better touch */
     border-radius: 50%; /* Perfect Circle */
     border: 2px solid transparent;
     cursor: pointer;
@@ -1100,10 +1168,11 @@ html, body, #root {
     position: fixed; z-index: 1000;
     background: var(--bg-card);
     padding: 8px;
-    border-radius: 12px; /* R12 Menu */
+    border-radius: 12px;
     box-shadow: 0 10px 30px var(--shadow-card-hover);
     border: 1px solid var(--border-light);
     animation: fadeIn 0.1s ease-out;
+    max-width: calc(100vw - 32px);
 }
 @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.95); }
@@ -1113,20 +1182,47 @@ html, body, #root {
 .context-menu button {
     background: transparent; border: none;
     width: 100%; text-align: left;
-    padding: 8px 12px;
+    padding: 12px 16px;
+    min-height: 44px;
     display: flex; align-items: center; gap: 8px;
     font-size: var(--font-base); font-weight: 500; color: var(--text-primary);
-    border-radius: 6px; cursor: pointer;
+    border-radius: var(--radius-sm); cursor: pointer;
     white-space: nowrap;
 }
 .context-menu button:hover {
     background: var(--dw-primary); color: white;
 }
 
+/* Mobile: Action Sheet 스타일 */
+@media (max-width: 768px) {
+    .context-menu {
+        position: fixed;
+        left: 16px !important;
+        right: 16px;
+        bottom: 16px !important;
+        top: auto !important;
+        width: calc(100% - 32px);
+        max-width: none;
+        border-radius: 16px;
+        padding: 8px;
+        animation: slideUpMenu 0.2s ease-out;
+    }
+
+    @keyframes slideUpMenu {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .context-menu button {
+        justify-content: center;
+        font-weight: 600;
+    }
+}
+
 /* Custom Color Picker Styles */
 .custom-color-label {
     position: relative;
-    width: 24px; height: 24px;
+    width: 32px; height: 32px; /* Larger base size */
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
 }
@@ -1137,7 +1233,7 @@ html, body, #root {
     z-index: 2;
 }
 .custom-icon {
-    width: 24px; height: 24px;
+    width: 32px; height: 32px; /* Match color-dot-select */
     border-radius: 50%;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     transition: all 0.2s;
@@ -1228,11 +1324,11 @@ html, body, #root {
 }
 
 .ai-suggestion-item.insert_before {
-    border-left-color: #34c759;
+    border-left-color: var(--apple-green);
 }
 
 .ai-suggestion-item.append {
-    border-left-color: #af52de;
+    border-left-color: var(--apple-purple);
 }
 
 .suggestion-info {
@@ -1268,7 +1364,8 @@ html, body, #root {
 }
 
 .apply-btn:hover {
-    background: #0056d2;
+    background: var(--dw-primary);
+    filter: brightness(0.85);
     transform: scale(1.05);
 }
 
@@ -1297,7 +1394,7 @@ html, body, #root {
 .optimized-step .step-num {
     width: 24px;
     height: 24px;
-    background: linear-gradient(135deg, #ff9500, #ff6b00);
+    background: linear-gradient(135deg, var(--apple-orange), #ff6b00);
     color: white;
     border-radius: 50%;
     display: flex;
@@ -1317,7 +1414,7 @@ html, body, #root {
 .apply-all-btn {
     width: 100%;
     padding: 14px;
-    background: linear-gradient(135deg, #ff9500, #ff6b00);
+    background: linear-gradient(135deg, var(--apple-orange), #ff6b00);
     color: white;
     border: none;
     border-radius: 12px;
@@ -1365,7 +1462,7 @@ html, body, #root {
 }
 
 .settings-text-muted a {
-    color: #0a84ff;
+    color: var(--apple-blue);
 }
 
 .settings-btn-danger {
@@ -1380,6 +1477,12 @@ html, body, #root {
     font-size: var(--font-base);
     color: var(--text-secondary);
     line-height: 1.5;
+}
+
+.delete-modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
 }
 
 .delete-modal-btn-cancel {
@@ -1426,17 +1529,23 @@ html, body, #root {
 
     .acc-container {
         grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto auto;
         height: auto;
     }
 
+    /* Mobile: Main content first, then routines */
+    .acc-main {
+        order: 1;
+    }
+
     .acc-sidebar {
+        order: 2;
         height: auto;
         overflow: visible;
         border-right: none;
-        border-bottom: 1px solid var(--border-light);
+        border-top: 1px solid var(--border-light);
+        border-bottom: none;
         padding: 20px 20px 24px;
-        padding-bottom: 24px;
     }
 
     .acc-main {
@@ -1472,14 +1581,57 @@ html, body, #root {
         border-radius: 20px;
     }
 
+    /* Apple HIG: 모바일 카드 헤더 간소화 */
     .card-header {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 12px;
+        align-items: center;
+    }
+
+    .icon-wrapper {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+    }
+
+    .header-text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .header-text h2 {
+        font-size: var(--font-base);
+        margin-bottom: 2px;
+    }
+
+    .header-text p {
+        font-size: 9px;
+        letter-spacing: 0.12em;
     }
 
     .card-actions {
-        width: 100%;
-        justify-content: flex-end;
+        flex-shrink: 0;
+    }
+
+    /* Apple HIG: 모바일에서 버튼 숨기고 더보기만 표시 */
+    .desktop-only {
+        display: none !important;
+    }
+
+    .mobile-only {
+        display: flex !important;
+    }
+
+    /* 모바일: 카드 헤더 탭하면 집중모드 진입 */
+    .icon-wrapper,
+    .header-text {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .icon-wrapper:active,
+    .header-text:active {
+        opacity: 0.7;
     }
 
     .acc-steps-container {
@@ -1509,11 +1661,14 @@ html, body, #root {
 
 @media (max-width: 768px) {
     .acc-sidebar {
-        padding: 16px 16px 20px;
+        padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0px));
     }
 
     .acc-main {
         padding: 20px 16px 24px;
+        padding-top: max(20px, env(safe-area-inset-top, 20px));
+        padding-left: max(16px, env(safe-area-inset-left, 16px));
+        padding-right: max(16px, env(safe-area-inset-right, 16px));
     }
 
     .acc-logo {
@@ -1536,21 +1691,119 @@ html, body, #root {
         font-size: var(--font-sm);
     }
 
+    /* Mobile header: Logo left, status right */
+    .acc-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-left {
+        flex: 1;
+    }
+
     .header-left h1 {
         font-size: var(--font-xl);
     }
 
-    .create-pipe-btn {
-        width: 100%;
+    /* Hide action buttons on mobile */
+    .acc-actions {
+        display: none;
     }
 
-    .acc-actions {
+
+    /* Mobile header actions: theme toggle + settings */
+    .mobile-header-actions {
+        display: flex;
+        align-items: center;
         gap: 8px;
     }
 
-    .acc-icon-btn {
-        width: 44px; /* HIG: maintain 44pt touch target */
+    .mobile-theme-btn,
+    .mobile-settings-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
         height: 44px;
+        background: var(--input-bg-alt);
+        border: none;
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .mobile-theme-btn:hover,
+    .mobile-settings-btn:hover {
+        background: var(--hover-bg);
+        color: var(--text-primary);
+    }
+
+    /* Mobile: Ensure all modal buttons have 44px touch target */
+    .status-option,
+    .settings-btn-secondary,
+    .settings-btn-danger,
+    .primary-glass-btn {
+        min-height: 44px;
+    }
+
+    /* Mobile: Consistent modal sizing */
+    .settings-modal {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Mobile: Create floating add workflow button at bottom of grid */
+    .mobile-add-workflow-btn {
+        display: flex;
+        width: 100%;
+        padding: 16px;
+        margin-top: 16px;
+        background: var(--bg-card);
+        border: 2px dashed var(--border-light);
+        border-radius: var(--radius-lg);
+        color: var(--text-secondary);
+        font-size: var(--font-base);
+        font-weight: 600;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .mobile-add-workflow-btn:hover {
+        border-color: var(--dw-primary);
+        color: var(--dw-primary);
+        background: rgba(0, 122, 255, 0.05);
+    }
+
+    /* 집중모드 종료 버튼 */
+    .exit-focus-btn {
+        display: flex;
+        width: 100%;
+        padding: 16px;
+        margin-top: 16px;
+        background: var(--text-primary);
+        color: var(--bg-card);
+        border: none;
+        border-radius: var(--radius-lg);
+        font-size: var(--font-base);
+        font-weight: 600;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .exit-focus-btn:active {
+        transform: scale(0.98);
+    }
+
+    .create-pipe-btn {
+        width: 100%;
     }
 
     .acc-card {
@@ -1595,55 +1848,79 @@ html, body, #root {
         width: 16px;
     }
 
-    /* Apple HIG: Sheet-style modal for mobile */
+    /* 모바일 모달: 중앙 배치 (키보드와 충돌 방지) */
     .modal-overlay {
-        align-items: flex-end; /* Bottom aligned */
+        align-items: center;
+        padding: 16px;
     }
 
     .glass-modal {
         width: 100%;
-        max-width: 100%;
-        max-height: 90vh;
+        max-width: calc(100vw - 32px);
+        max-height: 80vh;
         margin: 0;
-        padding: 0;
-        border-radius: 20px 20px 0 0; /* Rounded top only */
-        animation: slideUp 0.3s cubic-bezier(0.2, 1, 0.4, 1);
-        padding-bottom: env(safe-area-inset-bottom, 20px); /* Safe area for notch devices */
+        padding: 24px 20px;
+        border-radius: 20px;
+        animation: popIn 0.25s cubic-bezier(0.2, 1, 0.4, 1);
     }
 
-    /* Sheet drag indicator */
     .glass-modal::before {
-        content: '';
-        display: block;
-        width: 36px;
-        height: 5px;
-        background: var(--border-light);
-        border-radius: 3px;
-        margin: 8px auto 0;
-        flex-shrink: 0;
+        display: none;
     }
 
     .modal-header {
-        padding: 16px 20px 12px;
-        border-bottom: 1px solid var(--border-subtle);
-        position: sticky;
-        top: 0;
-        background: var(--glass-modal-bg);
+        padding: 0 0 16px;
+        border-bottom: none;
+        position: relative;
+        background: transparent;
         z-index: 10;
+        margin-bottom: 8px;
     }
 
     .modal-header h3 {
-        font-size: var(--font-lg); /* iOS standard */
+        font-size: var(--font-lg);
     }
 
-    /* Modal content area */
-    .glass-modal > *:not(.modal-header):not(.modal-actions) {
-        padding-left: 20px;
-        padding-right: 20px;
+    /* Modal content spacing */
+    .glass-modal .form-group,
+    .glass-modal .memo-section,
+    .glass-modal .status-grid,
+    .glass-modal .step-preview-large {
+        margin-bottom: 16px;
     }
 
-    .glass-modal > .memo-section:first-of-type {
-        padding-top: 20px;
+    /* iOS zoom prevention: inputs must be 16px+ to prevent auto-zoom on focus */
+    .glass-input,
+    .glass-textarea,
+    .mini-input,
+    select {
+        font-size: 16px !important;
+    }
+
+    /* Color picker: 44px touch targets on mobile */
+    .color-selector {
+        gap: 12px;
+    }
+
+    .color-dot-select {
+        width: 44px;
+        height: 44px;
+    }
+
+    .custom-color-label {
+        width: 44px;
+        height: 44px;
+        overflow: hidden;
+    }
+
+    .custom-icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    /* Keep hidden input contained within label */
+    .hidden-color-input {
+        z-index: 1;
     }
 
     .status-grid {
@@ -1652,17 +1929,15 @@ html, body, #root {
 
     .modal-actions {
         flex-direction: column;
-        padding: 16px 20px;
+        padding: 16px 0 0;
         border-top: 1px solid var(--border-subtle);
-        position: sticky;
-        bottom: 0;
-        background: var(--glass-modal-bg);
+        margin-top: 16px;
     }
 
     .action-btn {
         width: 100%;
         text-align: center;
-        padding: 14px 0; /* Larger touch target */
+        padding: 14px 0;
         border-radius: 12px;
         background: var(--input-bg-alt);
         font-size: var(--font-base);
@@ -1674,6 +1949,48 @@ html, body, #root {
 
     .action-btn.danger {
         color: var(--color-danger);
+    }
+
+    /* Primary button in modals */
+    .primary-glass-btn {
+        margin-top: 16px;
+        width: 100%;
+        padding: 16px;
+        font-size: 16px;
+        border-radius: var(--radius-md);
+    }
+
+    /* Delete modal buttons */
+    .delete-modal-actions {
+        flex-direction: column;
+        margin-top: 16px;
+    }
+
+    .delete-modal-btn-cancel,
+    .delete-modal-btn-delete {
+        width: 100%;
+        min-height: 44px;
+        font-size: 16px;
+        border-radius: var(--radius-md);
+    }
+
+    .delete-confirm-body {
+        padding: 0 20px;
+        margin: 16px 0;
+    }
+
+    /* Settings modal button */
+    .settings-btn-done {
+        margin: 24px 20px 20px;
+        width: calc(100% - 40px);
+        padding: 16px;
+        font-size: 16px;
+        border-radius: var(--radius-md);
+    }
+
+    /* Modal actions (status editor) */
+    .modal-actions .action-btn {
+        min-height: 44px;
     }
 }
 

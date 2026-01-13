@@ -13,6 +13,7 @@
   },
   "header": {
     "focusMode": "集中モード",
+    "exitFocus": "集中モード終了",
     "newWorkflow": "新規ワークフロー",
     "systemStatus": "システム最適"
   },
@@ -92,6 +93,9 @@
   },
   "ai": {
     "whatsNext": "次は何する?",
+    "tabRecommend": "今何する?",
+    "tabQuick": "クイック",
+    "tabSummary": "まとめ",
     "setupTitle": "次は何する?",
     "setupDesc": "AIを接続してパーソナライズされたタスク推薦を受け取りましょう",
     "setupButton": "AIを設定",

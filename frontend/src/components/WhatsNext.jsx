@@ -208,26 +208,26 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
         </div>
 
         <div className="ai-tabs">
-          <button 
+          <button
             className={`ai-tab ${activeTab === 'recommend' ? 'active' : ''}`}
             onClick={() => setActiveTab('recommend')}
           >
-            <Sparkles size={14} />
-            {t('ai.tabRecommend', 'Recommend')}
+            <Sparkles size={16} />
+            <span className="tab-label">{t('ai.tabRecommend', 'What Now?')}</span>
           </button>
-          <button 
+          <button
             className={`ai-tab ${activeTab === 'quick' ? 'active' : ''}`}
             onClick={() => { setActiveTab('quick'); if (!quickActions) fetchQuickActions(); }}
           >
-            <ListTodo size={14} />
-            {t('ai.tabQuick', 'Quick Actions')}
+            <Zap size={16} />
+            <span className="tab-label">{t('ai.tabQuick', 'Quick Tasks')}</span>
           </button>
-          <button 
+          <button
             className={`ai-tab ${activeTab === 'summary' ? 'active' : ''}`}
             onClick={() => { setActiveTab('summary'); if (!dailySummary) fetchDailySummary(); }}
           >
-            <Trophy size={14} />
-            {t('ai.tabSummary', 'Daily Summary')}
+            <Trophy size={16} />
+            <span className="tab-label">{t('ai.tabSummary', 'Summary')}</span>
           </button>
         </div>
 
@@ -370,29 +370,19 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
       ) : null}
 
         <div className="ai-chat-section">
-          <button 
-            className={`chat-toggle ${chatMode ? 'active' : ''}`}
-            onClick={() => setChatMode(!chatMode)}
-          >
-            <MessageCircle size={14} />
-            {t('ai.chatToggle', 'AI Command')}
-          </button>
-          
-          {chatMode && (
-            <form onSubmit={handleChatSubmit} className="chat-form">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder={t('ai.chatPlaceholder', 'e.g., "Add exercise to routine at 9am"')}
-                className="chat-input"
-                disabled={isLoading}
-              />
-              <button type="submit" className="chat-send" disabled={isLoading || !chatInput.trim()}>
-                <Send size={16} />
-              </button>
-            </form>
-          )}
+          <form onSubmit={handleChatSubmit} className="chat-form">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder={t('ai.chatPlaceholder', 'AI에게 말하기...')}
+              className="chat-input"
+              disabled={isLoading}
+            />
+            <button type="submit" className="chat-send" disabled={isLoading || !chatInput.trim()}>
+              <Send size={16} />
+            </button>
+          </form>
         </div>
       </div>
     </div>

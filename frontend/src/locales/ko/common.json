@@ -13,6 +13,7 @@
   },
   "header": {
     "focusMode": "집중 모드",
+    "exitFocus": "집중 모드 종료",
     "newWorkflow": "새 워크플로우",
     "systemStatus": "시스템 최적"
   },
@@ -92,6 +93,9 @@
   },
   "ai": {
     "whatsNext": "지금 뭐 할까?",
+    "tabRecommend": "지금 뭐할까?",
+    "tabQuick": "빠른 작업",
+    "tabSummary": "오늘 정리",
     "setupTitle": "지금 뭐 할까?",
     "setupDesc": "AI를 연결해서 맞춤형 태스크 추천을 받으세요",
     "setupButton": "AI 설정하기",

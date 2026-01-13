@@ -71,6 +71,11 @@ const AppleCommandCenter = () => {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
+    // Update colors for mobile status bar
+    const bgColor = theme === 'dark' ? '#0f1419' : '#f8fafc';
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bgColor);
+    document.documentElement.style.backgroundColor = bgColor;
+    document.body.style.backgroundColor = bgColor;
   }, [theme]);
 
   const toggleTheme = () => {
@@ -563,15 +568,6 @@ const AppleCommandCenter = () => {
       e.preventDefault();
 
       // Calculate approximate index based on X position
-      // This is a heuristic. For robust index specific context menus, adding 'Add' buttons between nodes is also valid.
-      // But user asked for "Right click intermediate points".
-      // Let's rely on finding where the click happened relative to items.
-      // Simpler UX: Show context menu "Add Step" and default to end, or try to guess.
-      // Let's try to identify if we clicked ON a step (block context menu on step) or BETWEEN.
-
-      // Actually, standardizing: clicking background -> Add at End? Or finding nearest?
-      // Let's find the nearest gap.
-      // Advanced approach: Get all children elements
       let insertIndex = -1;
       const container = e.currentTarget;
       const children = Array.from(container.querySelectorAll('.acc-step'));
@@ -579,9 +575,6 @@ const AppleCommandCenter = () => {
       children.forEach((child, idx) => {
           const childRect = child.getBoundingClientRect();
           const center = childRect.left + childRect.width / 2;
-          
-          // If click is before center of child[i], insert at i.
-          // Let's simplify: find the first child where clickX < center.
           if (e.clientX < center && insertIndex === -1) {
               insertIndex = idx;
           }
@@ -595,6 +588,22 @@ const AppleCommandCenter = () => {
           y: e.clientY,
           pipelineId,
           index: insertIndex
+      });
+  };
+
+  // Mobile more button handler
+  const handleMobileMoreMenu = (e, pipelineId) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const pipeline = pipelines.find(p => p.id === pipelineId);
+      const stepsCount = pipeline?.steps?.length || 0;
+
+      setContextMenu({
+          visible: true,
+          x: e.clientX || e.touches?.[0]?.clientX || window.innerWidth / 2,
+          y: e.clientY || e.touches?.[0]?.clientY || 100,
+          pipelineId,
+          index: stepsCount // Add at end by default
       });
   };
 
@@ -668,19 +677,21 @@ const AppleCommandCenter = () => {
 
           renderedItems.push(
              <div key={r.id} className={`acc-routine-item ${r.done ? 'done' : ''}`}>
-                <div
+                <button
                     className={`checkbox-circle ${type==='afternoon'?'evening':''} ${r.done ? 'checked' : ''}`}
                     onClick={() => toggleRoutine(r.id)}
+                    aria-label={r.done ? t('routine.markIncomplete', 'Mark as incomplete') : t('routine.markComplete', 'Mark as complete')}
+                    aria-pressed={r.done}
                 >
                    {r.done && <Check size={12} strokeWidth={4} />}
-                </div>
+                </button>
                  <div className="text-content">
                    <div className="time">{r.time}</div>
                    <div className="title">
                        {r.title && r.title.startsWith && r.title.startsWith(r.time) ? r.title.replace(r.time, '').trim() : r.title}
                    </div>
                 </div>
-                <button className="del-btn" onClick={() => requestDelete('routine', r.id)}><X size={10}/></button>
+                <button className="del-btn" onClick={() => requestDelete('routine', r.id)} aria-label={t('routine.delete', 'Delete routine')}><X size={14}/></button>
              </div>
           );
       });
@@ -690,7 +701,8 @@ const AppleCommandCenter = () => {
   return (
     <div className="acc-container" onClick={() => setContextMenu(null)}>
 
-       {/* 1. SIDEBAR */}
+       {/* 1. SIDEBAR - 집중모드일 때 숨김 */}
+       {!focusedPipelineId && (
        <aside className="acc-sidebar">
          {/* Logo & Date */}
          <div className="sidebar-top">
@@ -705,7 +717,7 @@ const AppleCommandCenter = () => {
           <div className="routine-block">
              <div className="block-header">
                <h3>{t('sidebar.morningRoutine')}</h3>
-               <button className="add-mini-btn" onClick={() => setAddingRoutineType('morning')}><Plus size={12}/></button>
+               <button className="add-mini-btn" onClick={() => setAddingRoutineType('morning')} aria-label={t('routine.addMorning', 'Add morning routine')}><Plus size={12}/></button>
              </div>
              <div className="routine-list">
                  {isLoading ? (
@@ -732,7 +744,7 @@ const AppleCommandCenter = () => {
           <div className="routine-block">
              <div className="block-header">
                <h3>{t('sidebar.afternoonRoutine')}</h3>
-               <button className="add-mini-btn" onClick={() => setAddingRoutineType('afternoon')}><Plus size={12}/></button>
+               <button className="add-mini-btn" onClick={() => setAddingRoutineType('afternoon')} aria-label={t('routine.addAfternoon', 'Add afternoon routine')}><Plus size={12}/></button>
              </div>
              <div className="routine-list">
                  {isLoading ? (
@@ -755,13 +767,8 @@ const AppleCommandCenter = () => {
              </div>
           </div>
 
-          <div className="sidebar-footer">
-              <button className="sidebar-settings" onClick={() => setIsSettingsOpen(true)}>
-                  <Settings size={14} />
-                  {t('sidebar.preferences', 'Preferences')}
-              </button>
-          </div>
        </aside>
+       )}
 
         {/* 2. MAIN CONTENT */}
         <main className="acc-main">
@@ -776,6 +783,17 @@ const AppleCommandCenter = () => {
                  </div>
                </div>
 
+               {/* Mobile: Theme toggle + Settings button */}
+               <div className="mobile-header-actions">
+                   <button className="mobile-theme-btn" onClick={toggleTheme} title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')} aria-label={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}>
+                       {theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
+                   </button>
+                   <button className="mobile-settings-btn" onClick={() => setIsSettingsOpen(true)} title={t('settings.title')} aria-label={t('settings.title')}>
+                       <Settings size={18}/>
+                   </button>
+               </div>
+
+               {/* Desktop: Action buttons (hidden on mobile) */}
                <div className="acc-actions">
                   <div className="acc-status-pill">
                     <span className="status-dot" />
@@ -795,9 +813,6 @@ const AppleCommandCenter = () => {
                   <button className="acc-icon-btn" onClick={() => setIsSettingsOpen(true)} title={t('settings.title')} aria-label={t('settings.title')}>
                     <Settings size={18}/>
                   </button>
-                  <div className="acc-avatar" title="Profile">
-                    <span>DW</span>
-                  </div>
                </div>
             </header>
 
@@ -854,30 +869,41 @@ const AppleCommandCenter = () => {
                   onDrop={(e) => handlePipeDrop(e)}
                >
                   <div className="card-header">
-                     <div 
-                          className={`icon-wrapper ${!isHex ? p.color : ''}`} 
+                     <div
+                          className={`icon-wrapper ${!isHex ? p.color : ''}`}
                           style={isHex ? { backgroundColor: p.color } : {}}
+                          onClick={() => { if (window.innerWidth <= 768 && !focusedPipelineId) handleToggleFocus(p.id); }}
                       >
                          {getIcon(p.iconType, p.color)}
                       </div>
-                      <div className="header-text" onDoubleClick={() => startPipelineRename(p.id, p.title)} title={t('workflow.rename')}>
+                      <div
+                          className="header-text"
+                          onDoubleClick={() => startPipelineRename(p.id, p.title)}
+                          onClick={() => { if (window.innerWidth <= 768 && !focusedPipelineId) handleToggleFocus(p.id); }}
+                          title={t('workflow.rename')}
+                      >
                          <h2>{p.title}</h2>
                          <p>{p.subtitle}</p>
                       </div>
 
                      <div className="card-actions">
-                         <button className="icon-action-btn" onClick={() => handleToggleFocus(p.id)} title={isFocused ? t('settings.minimize') : t('header.focusMode')}>
-                             {isFocused ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
+                         {/* Desktop: 모든 버튼 표시 */}
+                         <button className="icon-action-btn desktop-only" onClick={() => handleToggleFocus(p.id)} title={isFocused ? t('header.exitFocus', 'Exit Focus') : t('header.focusMode')}>
+                             {isFocused ? <X size={16}/> : <Maximize2 size={16}/>}
                          </button>
-                       <button className="icon-action-btn ai-btn" onClick={() => handleAiEnhance(p.id)} title={t('ai.enhance', 'AI Enhance')}>
+                         <button className="icon-action-btn ai-btn desktop-only" onClick={() => handleAiEnhance(p.id)} title={t('ai.enhance', 'AI Enhance')}>
                              <Wand2 size={16} />
-                       </button>
-                       <button className="icon-action-btn" onClick={() => handleHeaderAddStep(p.id)}>
+                         </button>
+                         <button className="icon-action-btn desktop-only" onClick={() => handleHeaderAddStep(p.id)}>
                              <Plus size={16} />
-                       </button>
-                       <button className="icon-action-btn danger" onClick={(e) => handlePipelineDelete(p.id, e)}>
+                         </button>
+                         <button className="icon-action-btn danger desktop-only" onClick={(e) => handlePipelineDelete(p.id, e)}>
                              <Trash2 size={16} />
-                       </button>
+                         </button>
+                         {/* Mobile: 더보기 버튼만 표시 */}
+                         <button className="icon-action-btn mobile-only" onClick={(e) => handleMobileMoreMenu(e, p.id)}>
+                             <MoreHorizontal size={18} />
+                         </button>
                     </div>
                  </div>
 
@@ -917,19 +943,56 @@ const AppleCommandCenter = () => {
               </div>
             );
             }))}
+
+            {/* Mobile: Add workflow button - only when workflows exist and not in focus mode */}
+            {!isLoading && displayPipelines.length > 0 && !focusedPipelineId && (
+                <button className="mobile-add-workflow-btn" onClick={openPipeModal}>
+                    <Plus size={18}/> {t('workflow.create')}
+                </button>
+            )}
+
+            {/* 집중모드 종료 버튼 - 집중모드일 때만 표시 */}
+            {focusedPipelineId && (
+                <button className="exit-focus-btn" onClick={() => setFocusedPipelineId(null)}>
+                    <X size={18}/> {t('header.exitFocus', 'Exit Focus')}
+                </button>
+            )}
          </div>
         </div>
        </main>
 
         {/* CONTEXT MENU */}
         {contextMenu && contextMenu.visible && (
-            <div 
-              className="context-menu" 
+            <div
+              className="context-menu"
               style={{ top: contextMenu.y, left: contextMenu.x }}
               onClick={(e) => e.stopPropagation()}
             >
+                {/* Focus Mode Toggle */}
+                <button onClick={() => {
+                    handleToggleFocus(contextMenu.pipelineId);
+                    setContextMenu(prev => ({ ...prev, visible: false }));
+                }}>
+                    {focusedPipelineId === contextMenu.pipelineId ? <X size={14}/> : <Maximize2 size={14}/>}
+                    {focusedPipelineId === contextMenu.pipelineId ? t('header.exitFocus', 'Exit Focus') : t('header.focusMode')}
+                </button>
+                {/* AI Enhance */}
+                <button onClick={() => {
+                    handleAiEnhance(contextMenu.pipelineId);
+                    setContextMenu(prev => ({ ...prev, visible: false }));
+                }}>
+                    <Wand2 size={14}/> AI
+                </button>
+                {/* Add Step */}
                 <button onClick={handleContextAdd}>
-                    <Plus size={14}/> {t('step.addAt')} ({Number.isInteger(contextMenu.index) ? contextMenu.index + 1 : '?'})
+                    <Plus size={14}/> {t('step.add')}
+                </button>
+                {/* Delete */}
+                <button onClick={(e) => {
+                    handlePipelineDelete(contextMenu.pipelineId, e);
+                    setContextMenu(prev => ({ ...prev, visible: false }));
+                }} style={{ color: 'var(--color-danger)' }}>
+                    <Trash2 size={14}/> {t('workflow.delete')}
                 </button>
             </div>
         )}
@@ -951,7 +1014,7 @@ const AppleCommandCenter = () => {
                  <div className="memo-section">
                        <label>{t('settings.language')}</label>
                        <select
-                          value={i18n.language} 
+                          value={i18n.language}
                           onChange={(e) => i18n.changeLanguage(e.target.value)}
                           className="glass-input"
                           style={{ width: '100%', marginTop: '8px' }}
@@ -1266,7 +1329,7 @@ const AppleCommandCenter = () => {
               {deleteConfirm.message}
             </div>
 
-            <div className="modal-actions" style={{ marginTop: '24px', display: 'flex', gap: '12px', borderTop: 'none', padding: 0 }}>
+            <div className="delete-modal-actions">
               <button
                 className="delete-modal-btn-cancel"
                 onClick={() => setDeleteConfirm(null)}
