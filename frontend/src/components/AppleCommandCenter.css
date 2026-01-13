@@ -207,14 +207,15 @@ html, body, #root {
 .acc-sidebar {
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border-light);
-    padding: var(--space-7) var(--space-6) 128px; /* 128px = 16x8pt */
+    padding: var(--space-7) var(--space-6) 128px;
     display: flex; flex-direction: column;
     box-shadow: 4px 0 24px -12px rgba(15, 23, 42, 0.08);
     z-index: 10;
-    
-    /* CRITICAL FIX: Force viewport height so overflow triggers here */
-    height: 100vh; 
-    overflow-y: auto; 
+
+    /* Force viewport height */
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal overflow */ 
     
     /* Hide Scrollbar */
     -ms-overflow-style: none;
@@ -254,7 +255,12 @@ html, body, #root {
 }
 
 
-.routine-block { flex-shrink: 0; margin-bottom: 32px; /* Consistent block spacing */ }
+.routine-block {
+    flex-shrink: 0;
+    margin-bottom: 32px;
+    overflow: hidden; /* Prevent child overflow */
+    max-width: 100%;
+}
 .routine-block h3 {
     font-size: var(--font-xs);
     font-weight: 800;
@@ -384,12 +390,15 @@ html, body, #root {
     border-color: var(--dw-primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
-.mini-input.time { 
+.mini-input.time {
     width: 100%; /* Full width */
-    text-align: left; /* Align left */
+    max-width: 100%; /* Prevent overflow */
+    text-align: left;
     font-family: -apple-system, BlinkMacSystemFont, "SF Mono", "Menlo", monospace;
     font-variant-numeric: tabular-nums;
     cursor: text;
+    -webkit-appearance: none; /* iOS 일관성 */
+    appearance: none;
 }
 /* Hide the ugly clock icon */
 .mini-input.time::-webkit-calendar-picker-indicator {
