@@ -228,7 +228,7 @@ html, body, #root {
     flex-shrink: 0;
 }
 .acc-logo {
-    font-size: 11px;
+    font-size: var(--font-sm);
     font-weight: 800;
     letter-spacing: 0.32em;
     text-transform: uppercase;
@@ -241,14 +241,14 @@ html, body, #root {
     gap: 2px;
 }
 .date-label {
-    font-size: 10px;
+    font-size: var(--font-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     color: var(--text-muted);
 }
 .date-value {
-    font-size: 12px;
+    font-size: var(--font-sm);
     font-weight: 700;
     color: var(--text-primary);
 }
@@ -256,7 +256,7 @@ html, body, #root {
 
 .routine-block { flex-shrink: 0; margin-bottom: 32px; /* Consistent block spacing */ }
 .routine-block h3 {
-    font-size: 10px;
+    font-size: var(--font-xs);
     font-weight: 800;
     color: var(--text-muted);
     margin: 0 0 12px 0;
@@ -303,7 +303,7 @@ html, body, #root {
     border-radius: 12px;
     border: none;
     background: transparent;
-    font-size: 11px;
+    font-size: var(--font-sm);
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -352,13 +352,13 @@ html, body, #root {
 .checkbox-circle.evening.checked { background: var(--color-accent); border-color: var(--color-accent); }
 
 .text-content .time {
-    font-size: 10px;
+    font-size: var(--font-xs);
     font-weight: 700;
     color: var(--text-muted);
     letter-spacing: 0.08em;
 }
 .text-content .title {
-    font-size: 12px;
+    font-size: var(--font-sm);
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -376,7 +376,7 @@ html, body, #root {
     background: var(--input-bg);
     padding: 8px 10px;
     border-radius: var(--radius-md);
-    font-size: 13px; outline: none; width: 100%; box-sizing: border-box;
+    font-size: var(--font-base); outline: none; width: 100%; box-sizing: border-box;
     color: var(--text-primary);
     transition: border 0.2s, box-shadow 0.2s;
 }
@@ -403,7 +403,7 @@ html, body, #root {
     border: none; background: var(--text-primary); color: var(--bg-card-strong);
     border-radius: var(--radius-md); padding: 8px; cursor: pointer;
     width: 100%; /* Full width button */
-    margin-top: 4px; font-weight: 600; font-size: 13px;
+    margin-top: 4px; font-weight: 600; font-size: var(--font-base);
     transition: transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
 }
@@ -421,7 +421,7 @@ html, body, #root {
     flex: 1; height: 1px; background: var(--timeline-line);
 }
 .timeline-marker .badge {
-    font-size: 9px;
+    font-size: var(--font-xs);
     font-weight: 800;
     color: var(--dw-primary);
     background: rgba(59, 130, 246, 0.08);
@@ -480,7 +480,7 @@ html, body, #root {
     padding: 0 4px;
 }
 .header-left h1 { 
-    font-size: 22px;
+    font-size: var(--font-xl);
     font-weight: 800;
     letter-spacing: -0.6px;
     margin: 0;
@@ -489,7 +489,7 @@ html, body, #root {
 .header-left { display: flex; align-items: center; gap: 20px; }
 .header-subtitle {
     margin-top: 4px;
-    font-size: 11px;
+    font-size: var(--font-sm);
     font-weight: 600;
     color: var(--text-muted);
     letter-spacing: 0.08em;
@@ -501,7 +501,7 @@ html, body, #root {
     border: none; background: var(--text-primary); color: var(--bg-card);
     padding: 0 20px; height: 36px; /* Explicit height */
     border-radius: var(--radius-full); /* Pill */
-    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-size: var(--font-base); font-weight: 600; cursor: pointer;
     display: flex; gap: 8px; align-items: center; justify-content: center;
     transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -517,7 +517,7 @@ html, body, #root {
     border-radius: 999px;
     background: var(--bg-card-strong);
     border: 1px solid var(--border-subtle);
-    font-size: 10px;
+    font-size: var(--font-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.18em;
@@ -568,7 +568,7 @@ html, body, #root {
     width: 40px; height: 40px; border-radius: 50%;
     background: var(--text-primary); color: var(--bg-card);
     display: flex; align-items: center; justify-content: center;
-    font-weight: 600; font-size: 14px;
+    font-weight: 600; font-size: var(--font-base);
 }
 .acc-avatar {
     width: 36px;
@@ -579,7 +579,7 @@ html, body, #root {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: var(--font-sm);
     font-weight: 700;
     border: 2px solid rgba(255, 255, 255, 0.9);
     box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
@@ -644,13 +644,13 @@ html, body, #root {
 .icon-wrapper.yellow { background: linear-gradient(135deg, #FFCC00, #FFD60A); }
 
 .header-text h2 { 
-    font-size: 16px;
+    font-size: var(--font-md);
     font-weight: 700;
     margin: 0 0 6px 0;
     letter-spacing: -0.2px;
 }
 .header-text p {
-    font-size: 10px;
+    font-size: var(--font-xs);
     color: var(--text-muted);
     margin: 0;
     font-weight: 700;
@@ -795,7 +795,7 @@ html, body, #root {
     border: 1px solid var(--step-indicator-border); /* Subtle border */
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700; color: var(--text-secondary);
+    font-size: var(--font-xs); font-weight: 700; color: var(--text-secondary);
     box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
@@ -830,7 +830,7 @@ html, body, #root {
 }
 
 .step-label {
-    font-size: 10px;
+    font-size: var(--font-xs);
     font-weight: 700;
     color: var(--text-muted);
     text-align: center; white-space: nowrap; max-width: 90px;
@@ -845,7 +845,7 @@ html, body, #root {
 
 .now-tag {
     position: absolute; top: -20px;
-    font-size: 8px; font-weight: 800; color: white;
+    font-size: var(--font-xs); font-weight: 800; color: white;
     /* Use Custom Color if available, else default to black */
     background: var(--active-color, #1d1d1f); 
     padding: 3px 8px; border-radius: 999px;
@@ -899,7 +899,7 @@ html, body, #root {
     display: flex; justify-content: space-between; align-items: center;
     min-height: 44px; /* HIG: minimum touch target */
 }
-.modal-header h3 { margin: 0; font-size: 20px; font-weight: 700; color: var(--text-primary); }
+.modal-header h3 { margin: 0; font-size: var(--font-xl); font-weight: 700; color: var(--text-primary); }
 
 /* HIG: 44pt minimum touch target */
 .close-btn {
@@ -959,7 +959,7 @@ html, body, #root {
 }
 
 .step-preview-large {
-    font-size: 28px; font-weight: 800; text-align: center; color: var(--text-primary);
+    font-size: var(--font-2xl); font-weight: 800; text-align: center; color: var(--text-primary);
     margin: 10px 0;
 }
 
@@ -976,7 +976,7 @@ html, body, #root {
     border: none; padding: 16px; border-radius: 16px; /* R16 */
     font-weight: 600; cursor: pointer;
     display: flex; align-items: center; gap: 10px; justify-content: flex-start;
-    font-size: 13px;
+    font-size: var(--font-base);
     transition: transform 0.1s;
 }
 .status-option:hover { transform: scale(1.02); }
@@ -987,7 +987,7 @@ html, body, #root {
     display: flex; flex-direction: column; gap: 8px;
 }
 .memo-section label {
-    font-size: 13px; font-weight: 600; color: var(--text-secondary);
+    font-size: var(--font-base); font-weight: 600; color: var(--text-secondary);
     margin-left: 4px;
 }
 .glass-textarea {
@@ -997,7 +997,7 @@ html, body, #root {
     border: 1px solid var(--border-light);
     border-radius: 12px;
     padding: 16px;
-    font-size: 14px; line-height: 1.6;
+    font-size: var(--font-base); line-height: 1.6;
     color: var(--text-primary);
     resize: none;
     outline: none;
@@ -1032,17 +1032,17 @@ html, body, #root {
 }
 .action-btn {
     border: none; background: transparent; 
-    font-weight: 600; cursor: pointer; font-size: 13px;
+    font-weight: 600; cursor: pointer; font-size: var(--font-base);
 }
 .action-btn.text { color: var(--text-secondary); }
 .action-btn.danger { color: var(--color-danger); }
 
 /* Form Styles */
 .form-group { display: flex; flex-direction: column; gap: 8px; }
-.form-group label { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.form-group label { font-size: var(--font-sm); font-weight: 700; color: var(--text-secondary); }
 .glass-input {
     border: 1px solid var(--border-light); background: var(--glass-input-bg);
-    padding: 12px; border-radius: 12px; font-size: 14px;
+    padding: 12px; border-radius: 12px; font-size: var(--font-base);
     outline: none; transition: border 0.2s;
     color: var(--text-primary);
 }
@@ -1081,7 +1081,7 @@ html, body, #root {
     margin-top: 12px; width: 100%;
     padding: 14px; background: var(--text-primary); color: var(--bg-card);
     border: none; border-radius: 16px; /* R16 Big Button */
-    font-weight: 700; font-size: 14px; cursor: pointer;
+    font-weight: 700; font-size: var(--font-base); cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .primary-glass-btn:hover { opacity: 0.9; }
@@ -1106,7 +1106,7 @@ html, body, #root {
     width: 100%; text-align: left;
     padding: 8px 12px;
     display: flex; align-items: center; gap: 8px;
-    font-size: 13px; font-weight: 500; color: var(--text-primary);
+    font-size: var(--font-base); font-weight: 500; color: var(--text-primary);
     border-radius: 6px; cursor: pointer;
     white-space: nowrap;
 }
@@ -1173,7 +1173,7 @@ html, body, #root {
 
 .ai-loading-state p {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--font-base);
 }
 
 .ai-enhance-content {
@@ -1192,14 +1192,14 @@ html, body, #root {
 
 .ai-analysis p {
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--font-base);
     line-height: 1.5;
     margin: 0;
 }
 
 .ai-suggestions h4,
 .ai-optimized-flow h4 {
-    font-size: 13px;
+    font-size: var(--font-base);
     font-weight: 600;
     color: var(--text-secondary);
     margin-bottom: 12px;
@@ -1234,13 +1234,13 @@ html, body, #root {
 }
 
 .suggestion-type {
-    font-size: 14px;
+    font-size: var(--font-base);
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .suggestion-reason {
-    font-size: 12px;
+    font-size: var(--font-sm);
     color: var(--text-secondary);
 }
 
@@ -1294,13 +1294,13 @@ html, body, #root {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: var(--font-sm);
     font-weight: 700;
     flex-shrink: 0;
 }
 
 .optimized-step .step-name {
-    font-size: 14px;
+    font-size: var(--font-base);
     font-weight: 500;
     color: var(--text-primary);
 }
@@ -1313,7 +1313,7 @@ html, body, #root {
     border: none;
     border-radius: 12px;
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--font-base);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1341,7 +1341,7 @@ html, body, #root {
     background: var(--text-primary);
     color: var(--bg-card-strong);
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--font-base);
     cursor: pointer;
     transition: opacity 0.2s;
 }
@@ -1350,7 +1350,7 @@ html, body, #root {
 }
 
 .settings-text-muted {
-    font-size: 11px;
+    font-size: var(--font-sm);
     color: var(--text-muted);
     margin-top: 6px;
 }
@@ -1368,7 +1368,7 @@ html, body, #root {
 /* Delete Modal Fixes */
 .delete-confirm-body {
     margin: 20px 0;
-    font-size: 15px;
+    font-size: var(--font-base);
     color: var(--text-secondary);
     line-height: 1.5;
 }
@@ -1381,7 +1381,7 @@ html, body, #root {
     background: var(--input-bg-alt);
     color: var(--text-primary);
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--font-base);
     cursor: pointer;
     transition: opacity 0.2s;
 }
@@ -1397,7 +1397,7 @@ html, body, #root {
     background: var(--color-danger);
     color: white;
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--font-base);
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
     transition: transform 0.2s, box-shadow 0.2s;
@@ -1508,15 +1508,15 @@ html, body, #root {
     }
 
     .acc-logo {
-        font-size: 14px;
+        font-size: var(--font-base);
     }
 
     .date-badge {
-        font-size: 10px;
+        font-size: var(--font-xs);
     }
 
     .routine-block h3 {
-        font-size: 10px;
+        font-size: var(--font-xs);
     }
 
     .acc-routine-item {
@@ -1524,11 +1524,11 @@ html, body, #root {
     }
 
     .text-content .title {
-        font-size: 12px;
+        font-size: var(--font-sm);
     }
 
     .header-left h1 {
-        font-size: 22px;
+        font-size: var(--font-xl);
     }
 
     .create-pipe-btn {
@@ -1555,11 +1555,11 @@ html, body, #root {
     }
 
     .header-text h2 {
-        font-size: 17px;
+        font-size: var(--font-lg);
     }
 
     .header-text p {
-        font-size: 12px;
+        font-size: var(--font-sm);
     }
 
     .acc-steps-container {
@@ -1573,7 +1573,7 @@ html, body, #root {
 
     .step-label {
         max-width: 72px;
-        font-size: 10px;
+        font-size: var(--font-xs);
     }
 
     .acc-step:not(:last-child)::after {
@@ -1624,7 +1624,7 @@ html, body, #root {
     }
 
     .modal-header h3 {
-        font-size: 17px; /* iOS standard */
+        font-size: var(--font-lg); /* iOS standard */
     }
 
     /* Modal content area */
@@ -1656,7 +1656,7 @@ html, body, #root {
         padding: 14px 0; /* Larger touch target */
         border-radius: 12px;
         background: var(--input-bg-alt);
-        font-size: 15px;
+        font-size: var(--font-base);
     }
 
     .action-btn.text {
