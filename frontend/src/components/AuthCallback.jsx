@@ -38,14 +38,20 @@ const AuthCallback = () => {
     }
 
     if (!code) {
-      // Support implicit flow / hash-based sessions as well.
+      // Support implicit flow / hash-based sessions when available.
       (async () => {
         try {
-          const { data, error: sessionError } = await supabase.auth.getSessionFromUrl({
-            storeSession: true,
-          });
-          if (sessionError) throw sessionError;
-          if (!data?.session) throw new Error('Missing OAuth session.');
+          if (typeof supabase.auth.getSessionFromUrl === 'function') {
+            const { data, error: sessionError } = await supabase.auth.getSessionFromUrl({
+              storeSession: true,
+            });
+            if (sessionError) throw sessionError;
+            if (!data?.session) throw new Error('Missing OAuth session.');
+          } else {
+            const { data, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (!data?.session) throw new Error('Missing OAuth code.');
+          }
           setStatus('ok');
           window.location.replace('/');
         } catch (e) {
