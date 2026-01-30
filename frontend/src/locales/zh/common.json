@@ -129,6 +129,15 @@
     "tabChaos": "混沌倾倒",
     "showMore": "更多",
     "showLess": "收起",
+    "oneNextStep": "只做一个下一步",
+    "useAISuggestion": "获取 AI 推荐",
+    "localReason": {
+      "active": "进行中",
+      "next": "下一步",
+      "routine": "下一个日程"
+    },
+    "localEmptyTask": "先把想法倾倒出来，再选一个很小的下一步。",
+    "localEmptyReason": "没有进行中的项目",
     "setupTitle": "接下来做什么?",
     "setupDesc": "连接AI获取个性化任务推荐",
     "setupButton": "设置AI",

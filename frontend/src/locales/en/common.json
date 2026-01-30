@@ -167,6 +167,15 @@
     "tabChaos": "Chaos Dump",
     "showMore": "More",
     "showLess": "Less",
+    "oneNextStep": "One clear next step",
+    "useAISuggestion": "Get AI suggestion",
+    "localReason": {
+      "active": "Active step",
+      "next": "Next step",
+      "routine": "Next routine"
+    },
+    "localEmptyTask": "Dump your thoughts, then pick one tiny step.",
+    "localEmptyReason": "No active items found",
     "setupTitle": "What's Next?",
     "setupDesc": "Connect AI to get personalized task recommendations",
     "setupButton": "Set Up AI",

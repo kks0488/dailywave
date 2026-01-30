@@ -167,6 +167,15 @@
     "tabChaos": "카오스 덤프",
     "showMore": "더보기",
     "showLess": "접기",
+    "oneNextStep": "지금 할 일 딱 하나",
+    "useAISuggestion": "AI 추천 받기",
+    "localReason": {
+      "active": "진행 중",
+      "next": "다음",
+      "routine": "다음 루틴"
+    },
+    "localEmptyTask": "일단 쏟아내고, 딱 한 걸음만 고르세요.",
+    "localEmptyReason": "진행 중인 항목이 없어요",
     "setupTitle": "지금 뭐 할까?",
     "setupDesc": "AI를 연결해서 맞춤형 태스크 추천을 받으세요",
     "setupButton": "AI 설정하기",

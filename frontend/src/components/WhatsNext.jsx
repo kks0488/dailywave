@@ -17,6 +17,59 @@ const getStoredSimpleMode = () => {
   }
 };
 
+const getLocalNext = ({ pipelines, routines, t }) => {
+  const safePipelines = Array.isArray(pipelines) ? pipelines : [];
+  const safeRoutines = Array.isArray(routines) ? routines : [];
+
+  for (const pipeline of safePipelines) {
+    const steps = Array.isArray(pipeline?.steps) ? pipeline.steps : [];
+    const active = steps.find((s) => s?.status === 'active');
+    const title = active?.title || active?.name;
+    if (title) {
+      return {
+        task: title,
+        reason: pipeline?.title
+          ? `${t('ai.localReason.active', 'Active step')} · ${pipeline.title}`
+          : t('ai.localReason.active', 'Active step'),
+      };
+    }
+  }
+
+  for (const pipeline of safePipelines) {
+    const steps = Array.isArray(pipeline?.steps) ? pipeline.steps : [];
+    const next =
+      steps.find((s) => s?.status === 'pending') || steps.find((s) => s?.status === 'locked');
+    const title = next?.title || next?.name;
+    if (title) {
+      return {
+        task: title,
+        reason: pipeline?.title
+          ? `${t('ai.localReason.next', 'Next step')} · ${pipeline.title}`
+          : t('ai.localReason.next', 'Next step'),
+      };
+    }
+  }
+
+  const pendingRoutines = safeRoutines
+    .filter((r) => !r?.done)
+    .slice()
+    .sort((a, b) => String(a?.time || '').localeCompare(String(b?.time || '')));
+  const routine = pendingRoutines[0];
+  if (routine?.title) {
+    const time = routine?.time ? String(routine.time) : '';
+    const timeLabel = time ? ` · ${time}` : '';
+    return {
+      task: routine.title,
+      reason: `${t('ai.localReason.routine', 'Next routine')}${timeLabel}`,
+    };
+  }
+
+  return {
+    task: t('ai.localEmptyTask', 'Dump your thoughts, then pick one tiny step.'),
+    reason: t('ai.localEmptyReason', 'No active items found'),
+  };
+};
+
 const WhatsNext = ({
   pipelines,
   routines,
@@ -51,6 +104,7 @@ const WhatsNext = ({
   const [chaosPreview, setChaosPreview] = useState(null);
   const [chaosDumpId, setChaosDumpId] = useState(null);
   const selectedTab = simpleMode ? 'chaos' : activeTab;
+  const localNext = getLocalNext({ pipelines, routines, t });
 
   useEffect(() => {
     if (!simpleMode) return;
@@ -593,10 +647,22 @@ const WhatsNext = ({
 
 	        {selectedTab === 'chaos' && (
 	          <div className="chaos-dump-content">
-            <textarea
-              className="chaos-textarea"
-              value={chaosText}
-              onChange={(e) => {
+              <div className="simple-next-card">
+                <div className="simple-next-title">{t('ai.oneNextStep', 'One clear next step')}</div>
+                <div className="simple-next-task">{(recommendation?.task || localNext.task) ?? ''}</div>
+                <div className="simple-next-reason">{(recommendation?.reason || localNext.reason) ?? ''}</div>
+                {aiEnabled && !recommendation && (
+                  <button className="simple-next-btn" onClick={fetchRecommendation} disabled={isLoading}>
+                    <Sparkles size={14} />
+                    {t('ai.useAISuggestion', 'Get AI suggestion')}
+                  </button>
+                )}
+              </div>
+
+	            <textarea
+	              className="chaos-textarea"
+	              value={chaosText}
+	              onChange={(e) => {
                 setChaosText(e.target.value);
                 if (chaosDumpId) setChaosDumpId(null);
                 if (chaosPreview) setChaosPreview(null);

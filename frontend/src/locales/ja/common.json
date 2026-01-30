@@ -129,6 +129,15 @@
     "tabChaos": "カオスダンプ",
     "showMore": "もっと",
     "showLess": "閉じる",
+    "oneNextStep": "次の一歩だけ",
+    "useAISuggestion": "AIおすすめ",
+    "localReason": {
+      "active": "進行中",
+      "next": "次",
+      "routine": "次のルーティン"
+    },
+    "localEmptyTask": "まず全部書き出して、次の小さな一歩を選びましょう。",
+    "localEmptyReason": "進行中の項目がありません",
     "setupTitle": "次は何する?",
     "setupDesc": "AIを接続してパーソナライズされたタスク推薦を受け取りましょう",
     "setupButton": "AIを設定",

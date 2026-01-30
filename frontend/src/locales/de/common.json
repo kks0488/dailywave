@@ -167,6 +167,15 @@
     "tabChaos": "Chaos Dump",
     "showMore": "Mehr",
     "showLess": "Weniger",
+    "oneNextStep": "Ein klarer nächster Schritt",
+    "useAISuggestion": "AI‑Vorschlag holen",
+    "localReason": {
+      "active": "Aktiver Schritt",
+      "next": "Nächster Schritt",
+      "routine": "Nächste Routine"
+    },
+    "localEmptyTask": "Schreibe alles auf, dann wähle einen winzigen nächsten Schritt.",
+    "localEmptyReason": "Keine aktiven Items gefunden",
     "setupTitle": "Was jetzt?",
     "setupDesc": "Verbinde AI für personalisierte Empfehlungen",
     "setupButton": "AI einrichten",
