@@ -341,6 +341,7 @@ const AppleCommandCenter = () => {
   const [newRoutineText, setNewRoutineText] = useState('');
   const [newRoutineTime, setNewRoutineTime] = useState('09:00');
   const [addingRoutineType, setAddingRoutineType] = useState(null); // 'morning' | 'afternoon' | null
+  const addRoutineFormRef = React.useRef(null);
 
   // --- STATE ---
   const [newPipeTitle, setNewPipeTitle] = useState('');
@@ -621,6 +622,34 @@ const AppleCommandCenter = () => {
       setNewRoutineText('');
       setAddingRoutineType(null);
   };
+
+  const closeRoutineAdder = () => {
+      setNewRoutineText('');
+      setAddingRoutineType(null);
+  };
+
+  useEffect(() => {
+      if (!addingRoutineType) return;
+
+      const onPointerDown = (e) => {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+          if (addRoutineFormRef.current?.contains(target)) return;
+          if (target.closest?.('[data-action="open-add-routine"]')) return;
+          closeRoutineAdder();
+      };
+
+      const onKeyDown = (e) => {
+          if (e.key === 'Escape') closeRoutineAdder();
+      };
+
+      document.addEventListener('pointerdown', onPointerDown, { capture: true });
+      document.addEventListener('keydown', onKeyDown);
+      return () => {
+          document.removeEventListener('pointerdown', onPointerDown, { capture: true });
+          document.removeEventListener('keydown', onKeyDown);
+      };
+  }, [addingRoutineType]);
 
   const handleCreatePipeline = () => {
       if(!newPipeTitle.trim()) return toast.warning(t('workflow.title'));
@@ -1294,7 +1323,7 @@ const AppleCommandCenter = () => {
           <div className="routine-block">
              <div className="block-header">
                <h3>{t('sidebar.morningRoutine')}</h3>
-               <button className="add-mini-btn" onClick={() => setAddingRoutineType('morning')} aria-label={t('routine.addMorning', 'Add morning routine')}><Plus size={12}/></button>
+	               <button className="add-mini-btn" data-action="open-add-routine" onClick={() => setAddingRoutineType('morning')} aria-label={t('routine.addMorning', 'Add morning routine')}><Plus size={12}/></button>
              </div>
              <div className="routine-list">
                  {isLoading ? (
@@ -1308,11 +1337,11 @@ const AppleCommandCenter = () => {
                      </>
                  )}
                  {addingRoutineType === 'morning' && (
-                     <div className="add-routine-form">
-                         <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
-                         <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
-                         <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
-                     </div>
+	                     <div className="add-routine-form" ref={addRoutineFormRef}>
+	                         <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
+	                         <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
+	                         <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
+	                     </div>
                  )}
              </div>
           </div>
@@ -1321,7 +1350,7 @@ const AppleCommandCenter = () => {
           <div className="routine-block">
              <div className="block-header">
                <h3>{t('sidebar.afternoonRoutine')}</h3>
-               <button className="add-mini-btn" onClick={() => setAddingRoutineType('afternoon')} aria-label={t('routine.addAfternoon', 'Add afternoon routine')}><Plus size={12}/></button>
+	               <button className="add-mini-btn" data-action="open-add-routine" onClick={() => setAddingRoutineType('afternoon')} aria-label={t('routine.addAfternoon', 'Add afternoon routine')}><Plus size={12}/></button>
              </div>
              <div className="routine-list">
                  {isLoading ? (
@@ -1335,11 +1364,11 @@ const AppleCommandCenter = () => {
                      </>
                  )}
                  {addingRoutineType === 'afternoon' && (
-                     <div className="add-routine-form">
-                         <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
-                         <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
-                         <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
-                     </div>
+	                     <div className="add-routine-form" ref={addRoutineFormRef}>
+	                         <input type="time" value={newRoutineTime} onChange={e => setNewRoutineTime(e.target.value)} className="mini-input time"/>
+	                         <input type="text" placeholder={t('sidebar.addPlaceholder')} value={newRoutineText} onChange={e => setNewRoutineText(e.target.value)} className="mini-input text" autoFocus onKeyDown={e => e.key==='Enter' && handleAddRoutine(e)}/>
+	                         <button className="confirm-btn" onClick={handleAddRoutine}><Check size={12}/></button>
+	                     </div>
                  )}
              </div>
           </div>
