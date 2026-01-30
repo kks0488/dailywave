@@ -18,6 +18,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `console.log/warn` → `logger.log/warn` (WhatsNext, gemini.js, AppleCommandCenter)
 - `vite.config.js` 포트 주석 추가 (dev:3005 vs prod:3020 명확화)
 
+## [1.3.0] - 2026-01-30
+
+### Added
+- **Supabase Cloud Login (Frontend)**: OAuth callback route `/auth/callback`
+- **Account section in Settings**: Sign in/out + manual **Sync now**
+- **Workspace auto-create fallback** on save (reduces first-login failures)
+- **German locale (de)**: UI translations + language selector option
+- **Simple Mode (default)**: Chaos Dump-first UI with a “More/Less” toggle
+- **Home Next Step card**: shows a single recommended next action (local heuristic, optional AI)
+
+### Changed
+- “Chaos Dump” becomes the default, low-friction entry point (fewer visible actions by default)
+
+### Fixed
+- Auth callback robustness: handles missing OAuth code/state more gracefully
+- Dark mode readability for Chaos Dump “AI hint”
+- Routine add inline form now closes on outside click / `Esc`
+- Main panel scrollbar hidden (scroll still works)
+
 ## [1.1.0] - 2026-01-29
 
 ### Added

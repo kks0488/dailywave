@@ -1,7 +1,7 @@
 # 🌊 DailyWave
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Stars](https://img.shields.io/github/stars/kkaemo/dailywave.svg?style=social)](https://github.com/kkaemo/dailywave)
+[![Stars](https://img.shields.io/github/stars/kks0488/dailywave.svg?style=social)](https://github.com/kks0488/dailywave)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
@@ -20,10 +20,10 @@ Deployment status: Live on Vercel (https://dailywave.vercel.app/)
 
 ## What you will see in 60 seconds
 
-1. Set your current energy (low/medium/high).
-2. Get a single "What's Next?" recommendation.
-3. Start a visual timer and focus on just one step.
-4. Watch routines and project flows update in real time.
+1. See **one clear next step** (local-first, optional AI).
+2. Use **Chaos Dump** to capture everything (save anytime).
+3. (Optional) Use AI to organize chaos into structured workflows/routines.
+4. Sync across devices after signing in (Supabase Cloud).
 
 ## Screenshot links
 
@@ -31,6 +31,8 @@ Deployment status: Live on Vercel (https://dailywave.vercel.app/)
 
 ## Key features
 
+- **One clear next step** (local-first, optional AI)
+- **Simple Mode (default)**: fewer buttons, Chaos Dump-centric home
 - **"What's Next?" AI (Gemini, optional)** for energy-aware recommendations
 - **memU Integration (optional)** for personalized AI context from past behavior
 - **Time Buddy** visual countdown timer that makes time feel real
@@ -38,7 +40,7 @@ Deployment status: Live on Vercel (https://dailywave.vercel.app/)
 - **Drag-and-drop** workflows and steps
 - **Daily routines** alongside projects in one timeline
 - **Live calendar sync** via standard `.ics` feeds
-- **Multi-language UI** (EN/KR/JA/ZH) and dark mode
+- **Multi-language UI** (EN/DE/KR/JA/ZH) and dark mode
 - **Supabase cloud sync** for logged-in users (guest mode also supported)
 - **Auto-save** so progress never disappears
 
@@ -154,6 +156,7 @@ dailywave/
 ## Internationalization
 
 - 🇺🇸 English
+- 🇩🇪 Deutsch
 - 🇰🇷 Korean
 - 🇯🇵 Japanese
 - 🇨🇳 Chinese
@@ -163,6 +166,7 @@ dailywave/
 - [Architecture Overview](docs/ARCHITECTURE.md) - System design and data flow
 - [API Reference](docs/API.md) - Complete API documentation
 - [Supabase Setup](docs/SUPABASE_SETUP.md) - Auth and cloud sync setup
+- [Status (2026-01-30)](docs/STATUS_2026-01-30.md) - Recent changes + setup checklist
 - [Deployment Guide](deployment_guide.md) - Ubuntu/Docker/PM2 deployment
 - [Roadmap](docs/ROADMAP.md) - Current status and future plans
 - [Creative Features](docs/CREATIVE_FEATURES.md) - Next-gen feature blueprints
