@@ -971,6 +971,15 @@
   background: var(--color-success-bg);
 }
 
+[data-theme="dark"] .chaos-locked-hint {
+  background: rgba(22, 27, 34, 0.72);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+[data-theme="dark"] .chaos-locked-hint p {
+  color: rgba(226, 232, 240, 0.9);
+}
+
 
 [data-theme="dark"] .chat-send {
   background: var(--dw-primary);
