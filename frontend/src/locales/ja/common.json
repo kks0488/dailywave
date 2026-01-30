@@ -127,6 +127,8 @@
     "tabQuick": "クイック",
     "tabSummary": "まとめ",
     "tabChaos": "カオスダンプ",
+    "showMore": "もっと",
+    "showLess": "閉じる",
     "setupTitle": "次は何する?",
     "setupDesc": "AIを接続してパーソナライズされたタスク推薦を受け取りましょう",
     "setupButton": "AIを設定",

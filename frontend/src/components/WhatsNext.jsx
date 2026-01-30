@@ -6,6 +6,17 @@ import { useToastStore } from '../store/useToastStore';
 import { logger } from '../lib/logger';
 import './WhatsNext.css';
 
+const getStoredSimpleMode = () => {
+  try {
+    const raw = globalThis?.localStorage?.getItem('dailywave_simple_mode');
+    if (raw === null) return true; // default: simple
+    return raw === '1';
+  } catch {
+    // ignore storage access errors
+    return true;
+  }
+};
+
 const WhatsNext = ({
   pipelines,
   routines,
@@ -22,6 +33,7 @@ const WhatsNext = ({
   const { t } = useTranslation();
   const toast = useToastStore(state => state.addToast);
   const aiEnabled = hasApiKey();
+  const [simpleMode, setSimpleMode] = useState(getStoredSimpleMode);
   
   const [recommendation, setRecommendation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +50,24 @@ const WhatsNext = ({
   const [chaosText, setChaosText] = useState('');
   const [chaosPreview, setChaosPreview] = useState(null);
   const [chaosDumpId, setChaosDumpId] = useState(null);
+  const selectedTab = simpleMode ? 'chaos' : activeTab;
+
+  useEffect(() => {
+    if (!simpleMode) return;
+    if (activeTab !== 'chaos') setActiveTab('chaos');
+  }, [activeTab, simpleMode]);
+
+  const toggleMode = () => {
+    setSimpleMode((prev) => {
+      const next = !prev;
+      try {
+        globalThis?.localStorage?.setItem('dailywave_simple_mode', next ? '1' : '0');
+      } catch {
+        // ignore storage access errors
+      }
+      return next;
+    });
+  };
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
@@ -324,68 +354,83 @@ const WhatsNext = ({
 
   const EnergyIcon = energy === 'high' ? Zap : energy === 'low' ? BatteryLow : BatteryMedium;
 
-  return (
-    <div className={`whats-next-card ${recommendation ? 'has-recommendation' : ''}`}>
-      <div className="whats-next-inner">
-        <div className="whats-next-header">
-          <div className="header-title">
-            <Sparkles size={18} className="sparkle-icon" />
-            <h3>{t('ai.whatsNext', "What's Next?")}</h3>
-          </div>
-          
-          <div className="energy-selector">
-            {['low', 'medium', 'high'].map(level => (
-              <button
-                key={level}
-                className={`energy-btn ${energy === level ? 'active' : ''}`}
-                onClick={() => setEnergy(level)}
-                disabled={!aiEnabled}
-                title={t(`ai.energy.${level}`, level)}
-              >
-                {level === 'high' ? <Zap size={14} /> : 
-                 level === 'low' ? <BatteryLow size={14} /> : 
-                 <BatteryMedium size={14} />}
-              </button>
-            ))}
-          </div>
-        </div>
+	  return (
+	    <div className={`whats-next-card ${recommendation ? 'has-recommendation' : ''}`}>
+	      <div className="whats-next-inner">
+	        <div className="whats-next-header">
+	          <div className="header-title">
+	            <Sparkles size={18} className="sparkle-icon" />
+	            <h3>{simpleMode ? t('ai.tabChaos', 'Chaos Dump') : t('ai.whatsNext', "What's Next?")}</h3>
+	          </div>
+	          
+	          <div className="header-actions">
+	            {!simpleMode && (
+	              <div className="energy-selector">
+	                {['low', 'medium', 'high'].map(level => (
+	                  <button
+	                    key={level}
+	                    className={`energy-btn ${energy === level ? 'active' : ''}`}
+	                    onClick={() => setEnergy(level)}
+	                    disabled={!aiEnabled}
+	                    title={t(`ai.energy.${level}`, level)}
+	                  >
+	                    {level === 'high' ? <Zap size={14} /> : 
+	                     level === 'low' ? <BatteryLow size={14} /> : 
+	                     <BatteryMedium size={14} />}
+	                  </button>
+	                ))}
+	              </div>
+	            )}
 
-        <div className="ai-tabs">
-          <button
-            className={`ai-tab ${activeTab === 'recommend' ? 'active' : ''}`}
-            onClick={() => setActiveTab('recommend')}
-          >
-            <Sparkles size={16} />
-            <span className="tab-label">{t('ai.tabRecommend', 'What Now?')}</span>
-          </button>
-          <button
-            className={`ai-tab ${activeTab === 'quick' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('quick'); if (!quickActions) fetchQuickActions(); }}
-          >
-            <Zap size={16} />
-            <span className="tab-label">{t('ai.tabQuick', 'Quick Tasks')}</span>
-          </button>
-          <button
-            className={`ai-tab ${activeTab === 'summary' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('summary'); if (!dailySummary) fetchDailySummary(); }}
-          >
-            <Trophy size={16} />
-            <span className="tab-label">{t('ai.tabSummary', 'Summary')}</span>
-          </button>
-          <button
-            className={`ai-tab ${activeTab === 'chaos' ? 'active' : ''}`}
-            onClick={() => setActiveTab('chaos')}
-          >
-            <MessageCircle size={16} />
-            <span className="tab-label">{t('ai.tabChaos', 'Chaos Dump')}</span>
-          </button>
-        </div>
+	            <button
+	              type="button"
+	              className="mode-toggle"
+	              onClick={toggleMode}
+	              aria-label={simpleMode ? t('ai.showMore', 'Show more') : t('ai.showLess', 'Show less')}
+	            >
+	              {simpleMode ? t('ai.showMore', 'More') : t('ai.showLess', 'Less')}
+	            </button>
+	          </div>
+	        </div>
 
-        {activeTab === 'quick' && (
-          <div className="quick-actions-content">
-            {!aiEnabled ? (
-              <div className="ai-setup-inline">
-                <Sparkles size={20} className="sparkle-icon" />
+	        {!simpleMode && (
+	        <div className="ai-tabs">
+	          <button
+	            className={`ai-tab ${selectedTab === 'recommend' ? 'active' : ''}`}
+	            onClick={() => setActiveTab('recommend')}
+	          >
+	            <Sparkles size={16} />
+	            <span className="tab-label">{t('ai.tabRecommend', 'What Now?')}</span>
+	          </button>
+	          <button
+	            className={`ai-tab ${selectedTab === 'quick' ? 'active' : ''}`}
+	            onClick={() => { setActiveTab('quick'); if (!quickActions) fetchQuickActions(); }}
+	          >
+	            <Zap size={16} />
+	            <span className="tab-label">{t('ai.tabQuick', 'Quick Tasks')}</span>
+	          </button>
+	          <button
+	            className={`ai-tab ${selectedTab === 'summary' ? 'active' : ''}`}
+	            onClick={() => { setActiveTab('summary'); if (!dailySummary) fetchDailySummary(); }}
+	          >
+	            <Trophy size={16} />
+	            <span className="tab-label">{t('ai.tabSummary', 'Summary')}</span>
+	          </button>
+	          <button
+	            className={`ai-tab ${selectedTab === 'chaos' ? 'active' : ''}`}
+	            onClick={() => setActiveTab('chaos')}
+	          >
+	            <MessageCircle size={16} />
+	            <span className="tab-label">{t('ai.tabChaos', 'Chaos Dump')}</span>
+	          </button>
+	        </div>
+	        )}
+
+	        {selectedTab === 'quick' && (
+	          <div className="quick-actions-content">
+	            {!aiEnabled ? (
+	              <div className="ai-setup-inline">
+	                <Sparkles size={20} className="sparkle-icon" />
                 <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
                 <button className="setup-btn" onClick={onOpenSettings}>
                   {t('ai.setupButton', 'Set Up AI')}
@@ -421,11 +466,11 @@ const WhatsNext = ({
           </div>
         )}
 
-      {activeTab === 'summary' && (
-        <div className="daily-summary-content">
-          {!aiEnabled ? (
-            <div className="ai-setup-inline">
-              <Sparkles size={20} className="sparkle-icon" />
+	      {selectedTab === 'summary' && (
+	        <div className="daily-summary-content">
+	          {!aiEnabled ? (
+	            <div className="ai-setup-inline">
+	              <Sparkles size={20} className="sparkle-icon" />
               <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
               <button className="setup-btn" onClick={onOpenSettings}>
                 {t('ai.setupButton', 'Set Up AI')}
@@ -470,17 +515,17 @@ const WhatsNext = ({
         </div>
       )}
 
-      {activeTab === 'recommend' && !aiEnabled ? (
-        <div className="ai-setup-inline">
-          <Sparkles size={20} className="sparkle-icon" />
-          <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
-          <button className="setup-btn" onClick={onOpenSettings}>
+	      {selectedTab === 'recommend' && !aiEnabled ? (
+	        <div className="ai-setup-inline">
+	          <Sparkles size={20} className="sparkle-icon" />
+	          <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
+	          <button className="setup-btn" onClick={onOpenSettings}>
             {t('ai.setupButton', 'Set Up AI')}
             <ChevronRight size={16} />
           </button>
         </div>
-      ) : activeTab === 'recommend' && recommendation ? (
-        <div className="recommendation-content">
+	      ) : selectedTab === 'recommend' && recommendation ? (
+	        <div className="recommendation-content">
           <div className="task-display">
             <span className="task-name">{recommendation.task}</span>
             <span className="task-reason">{recommendation.reason}</span>
@@ -524,8 +569,8 @@ const WhatsNext = ({
             {t('ai.nextTask', 'Get Next Task')}
           </button>
         </div>
-      ) : activeTab === 'recommend' ? (
-        <div className="empty-state">
+	      ) : selectedTab === 'recommend' ? (
+	        <div className="empty-state">
           <button 
             className="ask-ai-btn" 
             onClick={fetchRecommendation}
@@ -544,10 +589,10 @@ const WhatsNext = ({
           </button>
           <p className="hint">{t('ai.hint', 'AI will analyze your tasks and energy level')}</p>
         </div>
-      ) : null}
+	      ) : null}
 
-        {activeTab === 'chaos' && (
-          <div className="chaos-dump-content">
+	        {selectedTab === 'chaos' && (
+	          <div className="chaos-dump-content">
             <textarea
               className="chaos-textarea"
               value={chaosText}
@@ -653,13 +698,13 @@ const WhatsNext = ({
               </div>
             )}
           </div>
-        )}
+	        )}
 
-        {aiEnabled && (
-          <div className="ai-chat-section">
-            <form onSubmit={handleChatSubmit} className="chat-form">
-              <input
-                type="text"
+	        {aiEnabled && !simpleMode && (
+	          <div className="ai-chat-section">
+	            <form onSubmit={handleChatSubmit} className="chat-form">
+	              <input
+	                type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder={t('ai.chatPlaceholder', 'AI에게 말하기...')}

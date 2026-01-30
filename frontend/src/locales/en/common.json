@@ -165,6 +165,8 @@
     "tabQuick": "Quick Tasks",
     "tabSummary": "Summary",
     "tabChaos": "Chaos Dump",
+    "showMore": "More",
+    "showLess": "Less",
     "setupTitle": "What's Next?",
     "setupDesc": "Connect AI to get personalized task recommendations",
     "setupButton": "Set Up AI",

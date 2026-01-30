@@ -127,6 +127,8 @@
     "tabQuick": "快速任务",
     "tabSummary": "今日总结",
     "tabChaos": "混沌倾倒",
+    "showMore": "更多",
+    "showLess": "收起",
     "setupTitle": "接下来做什么?",
     "setupDesc": "连接AI获取个性化任务推荐",
     "setupButton": "设置AI",

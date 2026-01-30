@@ -165,6 +165,8 @@
     "tabQuick": "Schnelle Aufgaben",
     "tabSummary": "Zusammenfassung",
     "tabChaos": "Chaos Dump",
+    "showMore": "Mehr",
+    "showLess": "Weniger",
     "setupTitle": "Was jetzt?",
     "setupDesc": "Verbinde AI für personalisierte Empfehlungen",
     "setupButton": "AI einrichten",
@@ -232,4 +234,3 @@
     "callbackError": "Anmeldung fehlgeschlagen"
   }
 }
-

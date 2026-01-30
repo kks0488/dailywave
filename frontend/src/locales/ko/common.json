@@ -165,6 +165,8 @@
     "tabQuick": "빠른 작업",
     "tabSummary": "오늘 정리",
     "tabChaos": "카오스 덤프",
+    "showMore": "더보기",
+    "showLess": "접기",
     "setupTitle": "지금 뭐 할까?",
     "setupDesc": "AI를 연결해서 맞춤형 태스크 추천을 받으세요",
     "setupButton": "AI 설정하기",
