@@ -1855,18 +1855,19 @@ const AppleCommandCenter = () => {
                  
 	                  <div className="memo-section">
 	                        <label>{t('settings.language')}</label>
-	                        <select
-	                           value={i18n.language}
-	                           onChange={(e) => i18n.changeLanguage(e.target.value)}
-	                           className="glass-input"
-	                           style={{ width: '100%', marginTop: '8px' }}
-	                       >
-	                           <option value="en">English</option>
-	                           <option value="ko">한국어</option>
-	                           <option value="ja">日本語</option>
-	                           <option value="zh">中文</option>
-	                       </select>
-	                   </div>
+	                       <select
+	                          value={i18n.language}
+	                          onChange={(e) => i18n.changeLanguage(e.target.value)}
+	                          className="glass-input"
+	                          style={{ width: '100%', marginTop: '8px' }}
+	                      >
+	                          <option value="en">English</option>
+	                          <option value="de">Deutsch</option>
+	                          <option value="ko">한국어</option>
+	                          <option value="ja">日本語</option>
+	                          <option value="zh">中文</option>
+	                      </select>
+	                  </div>
 
 	                  <div className="memo-section">
 	                      <label>{t('settings.account', 'Account')}</label>
