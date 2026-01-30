@@ -2,6 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
+function getOAuthErrorFromLocation() {
+  const url = new URL(window.location.href);
+  const error = url.searchParams.get('error') || '';
+  const errorDescription = url.searchParams.get('error_description') || '';
+  const errorCode = url.searchParams.get('error_code') || '';
+  const message = errorDescription || error;
+  return message ? { message, errorCode } : null;
+}
+
 function getCodeFromLocation() {
   const url = new URL(window.location.href);
   return url.searchParams.get('code') || '';
@@ -13,6 +22,7 @@ const AuthCallback = () => {
   const [error, setError] = useState('');
 
   const code = useMemo(() => getCodeFromLocation(), []);
+  const oauthError = useMemo(() => getOAuthErrorFromLocation(), []);
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
@@ -21,9 +31,28 @@ const AuthCallback = () => {
       return;
     }
 
-    if (!code) {
+    if (oauthError?.message) {
       setStatus('error');
-      setError('Missing OAuth code.');
+      setError(oauthError.errorCode ? `${oauthError.message} (${oauthError.errorCode})` : oauthError.message);
+      return;
+    }
+
+    if (!code) {
+      // Support implicit flow / hash-based sessions as well.
+      (async () => {
+        try {
+          const { data, error: sessionError } = await supabase.auth.getSessionFromUrl({
+            storeSession: true,
+          });
+          if (sessionError) throw sessionError;
+          if (!data?.session) throw new Error('Missing OAuth session.');
+          setStatus('ok');
+          window.location.replace('/');
+        } catch (e) {
+          setStatus('error');
+          setError(e?.message || 'Auth callback failed.');
+        }
+      })();
       return;
     }
 
@@ -38,7 +67,7 @@ const AuthCallback = () => {
         setError(e?.message || 'Auth callback failed.');
       }
     })();
-  }, [code]);
+  }, [code, oauthError?.errorCode, oauthError?.message]);
 
   return (
     <div className="app-container" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
@@ -64,4 +93,3 @@ const AuthCallback = () => {
 };
 
 export default AuthCallback;
-
