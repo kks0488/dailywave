@@ -32,12 +32,14 @@ Deployment status: Live on Vercel (https://dailywave.vercel.app/)
 ## Key features
 
 - **"What's Next?" AI (Gemini, optional)** for energy-aware recommendations
+- **memU Integration (optional)** for personalized AI context from past behavior
 - **Time Buddy** visual countdown timer that makes time feel real
 - **Flow-based workflows** with clear next-step logic
 - **Drag-and-drop** workflows and steps
 - **Daily routines** alongside projects in one timeline
 - **Live calendar sync** via standard `.ics` feeds
 - **Multi-language UI** (EN/KR/JA/ZH) and dark mode
+- **Supabase cloud sync** for logged-in users (guest mode also supported)
 - **Auto-save** so progress never disappears
 
 ## How it works
@@ -76,8 +78,10 @@ uvicorn main:app --host 0.0.0.0 --port 8020 --reload
 cd frontend
 npm install
 cp .env.example .env  # Optional: add your Gemini API key
-npm run dev -- --port 3020
+npm run dev
 ```
+
+Default dev URL: `http://localhost:3005` (see `frontend/vite.config.js`)
 
 ### Production (PM2)
 
@@ -96,9 +100,13 @@ pm2 start ecosystem.config.js
 
 ### Backend
 - **FastAPI** for async APIs
-- **NetworkX** for flow/DAG execution
 - **Pydantic** for validation
 - **iCalendar** for `.ics` feeds
+- **httpx** for async HTTP (AI proxy, memU)
+
+### Services (optional)
+- **memU** for AI memory and personalization
+- **Supabase** for auth and cloud sync
 
 ### DevOps
 - **Docker** for local/production parity
@@ -109,23 +117,38 @@ pm2 start ecosystem.config.js
 | Endpoint | Method | Description |
 | :--- | :---: | :--- |
 | `/` | `GET` | Health check & version |
+| `/health` | `GET` | Health status |
 | `/api/persistence/load` | `GET` | Load saved state |
 | `/api/persistence/save` | `POST` | Save app state |
 | `/api/calendar/feed` | `GET` | `.ics` calendar feed |
 | `/execute` | `POST` | Run a workflow pipeline |
+| `/api/ai/ask` | `POST` | AI proxy (Gemini + memU context) |
+| `/api/memory/track` | `POST` | Track user behavior for memU |
+
+For full API documentation, see [`docs/API.md`](docs/API.md).
 
 ## Project structure
 
 ```text
 dailywave/
-├── frontend/           # React + Vite application
-│   ├── src/            # Components, store, assets
-│   └── public/         # Static assets
-├── backend/            # FastAPI application
-│   ├── data/           # Persistent storage (JSON)
-│   └── ...             # Core logic (executor, storage, calendar)
-├── docker-compose.yml  # Container orchestration
-└── ecosystem.config.js # PM2 config
+├── frontend/             # React + Vite application
+│   ├── src/
+│   │   ├── components/   # UI components
+│   │   ├── store/        # Zustand stores
+│   │   ├── lib/          # Utilities (gemini, supabase, memoryTracker)
+│   │   └── locales/      # i18n translations (en/ko/ja/zh)
+│   └── public/           # Static assets
+├── backend/              # FastAPI application
+│   ├── main.py           # App entry point
+│   ├── executor.py       # Workflow execution (SSRF-protected)
+│   ├── storage.py        # Thread-safe JSON persistence
+│   ├── ai_proxy.py       # Server-side Gemini proxy
+│   ├── memory_service.py # memU integration
+│   ├── auth.py           # API key middleware
+│   └── data/             # Persistent storage
+├── docs/                 # Documentation
+├── docker-compose.yml    # Container orchestration (+ memU)
+└── ecosystem.config.js   # PM2 config
 ```
 
 ## Internationalization
@@ -134,6 +157,17 @@ dailywave/
 - 🇰🇷 Korean
 - 🇯🇵 Japanese
 - 🇨🇳 Chinese
+
+## Documentation
+
+- [Architecture Overview](docs/ARCHITECTURE.md) - System design and data flow
+- [API Reference](docs/API.md) - Complete API documentation
+- [Supabase Setup](docs/SUPABASE_SETUP.md) - Auth and cloud sync setup
+- [Deployment Guide](deployment_guide.md) - Ubuntu/Docker/PM2 deployment
+- [Roadmap](docs/ROADMAP.md) - Current status and future plans
+- [Creative Features](docs/CREATIVE_FEATURES.md) - Next-gen feature blueprints
+- [Changelog](CHANGELOG.md) - Version history
+- [Contributing](CONTRIBUTING.md) - How to contribute
 
 ## Contributing
 

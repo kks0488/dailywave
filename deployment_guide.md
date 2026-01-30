@@ -1,12 +1,32 @@
-# DailyWave Ubuntu Deployment Guide
+# DailyWave Deployment Guide
 
-이 가이드는 현재 Mac 환경의 프로젝트를 Ubuntu PC로 옮겨서 24시간 안정적으로 구동하는 방법을 설명합니다.
+Ubuntu 환경에서 DailyWave를 24시간 안정적으로 구동하는 방법을 설명합니다.
 
 ## 1. 파일 복사 및 준비
-전체 `marktrade-workflow` 폴더를 Ubuntu PC의 원하는 위치(예: `~/projects/`)로 복사합니다.
 
-## 2. 권장 방법: Docker 사용 (가장 간편함)
-Docker를 사용하면 파이썬이나 노드를 수동으로 설치할 필요가 없습니다.
+```bash
+git clone https://github.com/kkaemo/dailywave.git
+cd dailywave
+```
+
+## 2. 환경변수 설정
+
+### Backend
+```bash
+cp backend/.env.example backend/.env
+# 필수: GEMINI_API_KEY 설정
+# 선택: API_SECRET_KEY 설정 (API 인증 활성화)
+```
+
+### Frontend
+```bash
+cp frontend/.env.example frontend/.env
+# VITE_API_URL=http://localhost:8020
+```
+
+## 3. 권장 방법: Docker (가장 간편함)
+
+Docker를 사용하면 백엔드, 프론트엔드, memU가 한 번에 실행됩니다.
 
 ### 설치 (Ubuntu)
 ```bash
@@ -17,37 +37,38 @@ sudo usermod -aG docker $USER
 ```
 
 ### 실행
-프로젝트 루트 폴더(`docker-compose.yml`이 있는 곳)에서 실행:
 ```bash
 docker-compose up -d --build
 ```
-- `-d`: 백그라운드 실행 (상시 가동)
-- `--build`: 처음 실행하거나 코드가 바뀌었을 때 빌드
+
+### 구성 서비스
+| 서비스 | 포트 | 설명 |
+|--------|------|------|
+| frontend | 3020 | React UI |
+| backend | 8020 | FastAPI |
+| memu | 8100 | AI 메모리 (선택) |
 
 ### 확인
-- 프론트엔드: `http://[우분투_IP]:3020`
-- 백엔드: `http://[우분투_IP]:8020`
+- 프론트엔드: `http://[서버_IP]:3020`
+- 백엔드 API: `http://[서버_IP]:8020/docs`
+- memU 상태: `http://[서버_IP]:8100/health`
 
----
-
-## 3. 대안 방법: PM2 사용 (직접 서비스 관리)
-우분투에 파이썬과 노드가 직접 설치된 경우 사용합니다.
+## 4. 대안 방법: PM2 (직접 서비스 관리)
 
 ### 필수 패키지 설치
 ```bash
-# Node.js 설치 (v18+)
+# Node.js (v18+)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 
-# Python 3.11+ 설치
+# Python 3.11+
 sudo apt install -y python3 python3-venv
 
-# PM2 설치
+# PM2
 sudo npm install -g pm2
 ```
 
 ### 앱 실행
-프로젝트 루트 폴더에서:
 ```bash
 # 1. 백엔드 가상환경 설정 (처음 한 번만)
 cd backend
@@ -56,9 +77,10 @@ source venv/bin/activate
 pip install -r requirements.txt
 cd ..
 
-# 2. 프론트엔드 종속성 설치 (처음 한 번만)
+# 2. 프론트엔드 빌드 (처음 + 코드 변경 시)
 cd frontend
 npm install
+npm run build
 cd ..
 
 # 3. PM2로 시작
@@ -67,15 +89,26 @@ pm2 save
 pm2 startup
 ```
 
----
+## 5. 방화벽 설정
 
-## 4. 방화벽 설정 (필수)
-우분투 방화벽에서 포트를 열어주어야 외부(맥 등)에서 접속 가능합니다.
 ```bash
-sudo ufw allow 3020/tcp
-sudo ufw allow 8020/tcp
+sudo ufw allow 3020/tcp   # 프론트엔드
+sudo ufw allow 8020/tcp   # 백엔드
 sudo ufw enable
 ```
 
-## 5. 캘린더 연동 설정
-변경 후 캘린더 URL을 복사할 때 IP가 동적으로 변할 수 있으므로, 고정 IP를 사용하거나 `window.location.hostname`을 통해 정상적으로 복사되는지 확인하세요.
+## 6. memU 없이 실행
+
+memU는 선택적 서비스입니다. 없어도 DailyWave는 정상 작동합니다.
+- memU 없음: AI 추천이 일반적으로 동작
+- memU 있음: 사용자 행동 패턴 기반 개인화된 AI 추천
+
+Docker 없이 memU를 별도 실행하려면:
+```bash
+docker run -d -p 8100:8000 --name memu nevamindai/memu-server:latest
+```
+
+## 7. 캘린더 연동
+
+캘린더 URL은 `http://[서버_IP]:8020/api/calendar/feed`에서 `.ics` 피드를 제공합니다.
+고정 IP를 사용하거나, 프론트엔드에서 `window.location.hostname`을 통해 동적으로 생성됩니다.

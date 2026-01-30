@@ -37,7 +37,7 @@ This guide walks you through setting up Supabase for DailyWave.
    - **Site URL**: `https://your-domain.vercel.app`
    - **Redirect URLs**: Add:
      - `https://your-domain.vercel.app/auth/callback`
-     - `http://localhost:3020/auth/callback` (for development)
+     - `http://localhost:3005/auth/callback` (for development)
 
 ## 4. Get API Keys
 
@@ -114,9 +114,18 @@ routines
 - Users can only access their own data
 - API keys are safe to use in client (RLS protects data)
 
-## Next Steps
+## Sync Layer
 
-After setup:
-1. Update frontend to use Supabase client
-2. Implement authentication UI
-3. Migrate from local JSON storage to Supabase
+DailyWave는 3-tier 데이터 persistence를 사용합니다:
+
+1. **Supabase** (로그인 사용자) - `frontend/src/lib/supabaseSync.js`
+2. **Backend JSON** - `/api/persistence/save` & `/api/persistence/load`
+3. **localStorage** - 오프라인/게스트 폴백
+
+로그인한 사용자는 자동으로 Supabase에서 데이터를 로드/저장합니다.
+로그아웃 상태에서는 Backend JSON → localStorage 순서로 폴백합니다.
+
+### 관련 파일
+- `frontend/src/lib/supabase.js` - Supabase 클라이언트 초기화
+- `frontend/src/lib/supabaseSync.js` - `loadFromSupabase()`, `saveToSupabase()`
+- `frontend/src/store/useAuthStore.js` - 인증 상태 관리

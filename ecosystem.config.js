@@ -12,8 +12,8 @@ module.exports = {
     },
     {
       name: 'dailywave-frontend',
-      script: 'npm',
-      args: 'run dev -- --host --port 3020',
+      script: 'npx',
+      args: 'serve -s dist -l 3020',
       cwd: './frontend',
       autorestart: true,
       watch: false

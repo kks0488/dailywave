@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
-export const useAuthStore = create((set, get) => ({
+export const useAuthStore = create((set) => ({
   user: null,
   session: null,
   loading: true,
@@ -21,13 +21,16 @@ export const useAuthStore = create((set, get) => ({
       isGuest: !session
     })
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       set({
         session,
         user: session?.user ?? null,
         isGuest: !session
       })
     })
+
+    // Store unsubscribe for cleanup
+    set({ _authSubscription: subscription })
   },
 
   signInWithGoogle: async () => {

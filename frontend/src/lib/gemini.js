@@ -1,12 +1,31 @@
+import { logger } from './logger';
+
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent';
+const BACKEND_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL;
+const BACKEND_AI_URL = BACKEND_BASE_URL
+  ? `${BACKEND_BASE_URL}/api/ai/ask`
+  : null;
+
+// Hoisted RegExp (avoid re-creation per call)
+const JSON_OBJECT_RE = /\{[\s\S]*?\}/;
+const JSON_OBJECT_GREEDY_RE = /\{[\s\S]*\}/;
+const JSON_ARRAY_RE = /\[[\s\S]*\]/;
+
+// Cached localStorage reads
+let _cachedApiKey = null;
+let _cachedLang = null;
 
 export const getApiKey = () => {
-  return localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
+  if (_cachedApiKey !== null) return _cachedApiKey;
+  _cachedApiKey = localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
+  return _cachedApiKey;
 };
 
 const getCurrentLanguageCode = () => {
+  if (_cachedLang !== null) return _cachedLang;
   const lang = localStorage.getItem('i18nextLng') || navigator.language || 'en';
-  return lang.startsWith('ko') ? 'ko' : 'en';
+  _cachedLang = lang.startsWith('ko') ? 'ko' : 'en';
+  return _cachedLang;
 };
 
 const getLanguageLabel = () => (getCurrentLanguageCode() === 'ko' ? 'Korean' : 'English');
@@ -99,32 +118,56 @@ const getFallbackTexts = () => {
 
 export const setApiKey = (key) => {
   localStorage.setItem('gemini_api_key', key);
+  _cachedApiKey = key; // invalidate cache
 };
 
 export const hasApiKey = () => {
   return !!getApiKey();
 };
 
-export const askGemini = async (prompt, context = {}) => {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error('API key not configured. Please set your Gemini API key in Settings.');
-  }
-  
-  // API 키 로깅 제거 (보안)
-
-  const systemPrompt = `You are DailyWave AI, an ADHD-friendly productivity assistant. 
+export const askGemini = async (prompt, context = {}, userId = null) => {
+  const systemPrompt = `You are DailyWave AI, an ADHD-friendly productivity assistant.
 Your role is to help users with time blindness and decision paralysis.
 Be concise, encouraging, and never judgmental.
 Current time: ${new Date().toLocaleTimeString()}
 Current date: ${new Date().toLocaleDateString()}
 ${getLanguageInstruction()}`;
 
+  // Prefer backend proxy (API key stays server-side)
+  if (BACKEND_AI_URL) {
+    const apiSecretKey = import.meta.env.VITE_API_SECRET_KEY || '';
+    const response = await fetch(BACKEND_AI_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiSecretKey && { 'X-API-Key': apiSecretKey }),
+      },
+      body: JSON.stringify({
+        prompt,
+        context,
+        system_prompt: systemPrompt,
+        ...(userId && { user_id: userId }),
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `Backend AI error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.text || '';
+  }
+
+  // Fallback: direct Gemini call (for local dev without backend)
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error('API key not configured. Please set your Gemini API key in Settings.');
+  }
+
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{
         parts: [{
@@ -143,10 +186,9 @@ ${getLanguageInstruction()}`;
     try {
       const error = await response.json();
       errorMessage = error.error?.message || error.message || JSON.stringify(error);
-    } catch (e) {
+    } catch {
       errorMessage = `HTTP ${response.status}: ${response.statusText}`;
     }
-    console.error('Gemini API Error:', errorMessage);
     throw new Error(errorMessage);
   }
 
@@ -154,7 +196,7 @@ ${getLanguageInstruction()}`;
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 };
 
-export const getWhatsNext = async (pipelines, routines, currentEnergy = 'medium') => {
+export const getWhatsNext = async (pipelines, routines, currentEnergy = 'medium', userId = null) => {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
   
@@ -203,17 +245,17 @@ Respond in this exact JSON format only, no other text:
   "encouragement": "A short ADHD-friendly encouragement (max 10 words)"
 }`;
 
-  const response = await askGemini(prompt, { timeOfDay, currentEnergy });
-  console.log('Raw AI response:', response);
-  
+  const response = await askGemini(prompt, { timeOfDay, currentEnergy }, userId);
+  logger.log('Raw AI response:', response);
+
   try {
-    const jsonMatch = response.match(/\{[\s\S]*?\}/);
+    const jsonMatch = response.match(JSON_OBJECT_RE);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      console.log('Parsed AI response:', parsed);
+      logger.log('Parsed AI response:', parsed);
       return parsed;
     }
-    console.warn('No JSON found in response');
+    logger.warn('No JSON found in response');
   } catch (e) {
     console.error('Failed to parse AI response:', e, response);
   }
@@ -237,7 +279,7 @@ Respond in this exact JSON format only, no other text:
   };
 };
 
-export const parseAICommand = async (userInput, pipelines, routines) => {
+export const parseAICommand = async (userInput, pipelines, routines, userId = null) => {
   const workflowNames = pipelines.map(p => p.title).join(', ') || 'None';
   const langLabel = getLanguageLabel();
   
@@ -263,11 +305,11 @@ OUTPUT FORMAT (strict JSON):
 
 NOW PARSE AND OUTPUT JSON ONLY:`;
 
-  const response = await askGemini(prompt);
-  console.log('AI command raw response:', response);
+  const response = await askGemini(prompt, {}, userId);
+  logger.log('AI command raw response:', response);
   
   try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.match(JSON_OBJECT_GREEDY_RE);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       const confirmation = typeof parsed.confirmation === 'string' ? parsed.confirmation : getFallbackTexts().commandUnknown;
@@ -341,7 +383,145 @@ NOW PARSE AND OUTPUT JSON ONLY:`;
   return { action: 'unknown', data: {}, confirmation: getFallbackTexts().commandUnknown };
 };
 
-export const estimateTaskTime = async (taskName, taskMemo = '') => {
+const normalizeTimeHHMM = (value) => {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!/^\d{2}:\d{2}$/.test(text)) return null;
+  const [hh, mm] = text.split(':').map((part) => Number.parseInt(part, 10));
+  if (!Number.isInteger(hh) || !Number.isInteger(mm)) return null;
+  if (hh < 0 || hh > 23) return null;
+  if (mm < 0 || mm > 59) return null;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+};
+
+const normalizeChaosParseResult = (raw, pipelines, routines) => {
+  const base = typeof raw === 'object' && raw !== null ? raw : {};
+
+  const existingWorkflows = new Set(
+    (Array.isArray(pipelines) ? pipelines : [])
+      .map((p) => (typeof p?.title === 'string' ? p.title.trim().toLowerCase() : ''))
+      .filter(Boolean)
+  );
+
+  const existingRoutines = new Set(
+    (Array.isArray(routines) ? routines : [])
+      .map((r) => {
+        const title = typeof r?.title === 'string' ? r.title.trim().toLowerCase() : '';
+        const time = normalizeTimeHHMM(r?.time) || '';
+        return title ? `${title}|${time}` : '';
+      })
+      .filter(Boolean)
+  );
+
+  const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+  const normalizeList = (value) => {
+    const rawList = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+    return rawList.map((item) => (typeof item === 'string' ? item.trim() : '')).filter(Boolean);
+  };
+
+  const workflowsRaw = Array.isArray(base.workflows) ? base.workflows : [];
+  const workflows = workflowsRaw
+    .map((workflow) => {
+      const wf = typeof workflow === 'object' && workflow !== null ? workflow : {};
+      const title = normalizeText(wf.title);
+      if (!title) return null;
+      if (existingWorkflows.has(title.toLowerCase())) return null;
+
+      const steps = normalizeList(wf.steps).slice(0, 12);
+      if (steps.length === 0) return null;
+
+      return {
+        title,
+        subtitle: normalizeText(wf.subtitle),
+        steps,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+
+  const routinesRaw = Array.isArray(base.routines) ? base.routines : [];
+  const routinesNormalized = routinesRaw
+    .map((routine) => {
+      const r = typeof routine === 'object' && routine !== null ? routine : {};
+      const title = normalizeText(r.title);
+      if (!title) return null;
+
+      const time = normalizeTimeHHMM(r.time) || '09:00';
+      const hour = Number.parseInt(time.split(':')[0], 10);
+      const type = hour >= 12 ? 'afternoon' : 'morning';
+
+      if (existingRoutines.has(`${title.toLowerCase()}|${time}`)) return null;
+
+      return { title, time, type };
+    })
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const notes = normalizeList(base.notes).slice(0, 12);
+
+  return {
+    workflows,
+    routines: routinesNormalized,
+    notes,
+  };
+};
+
+export const parseChaosDump = async (text, pipelines, routines, userId = null) => {
+  const input = typeof text === 'string' ? text.trim() : '';
+  if (!input) return { workflows: [], routines: [], notes: [] };
+
+  const workflowTitles = (Array.isArray(pipelines) ? pipelines : [])
+    .map((p) => (typeof p?.title === 'string' ? p.title : ''))
+    .filter(Boolean);
+  const routineTitles = (Array.isArray(routines) ? routines : [])
+    .map((r) => ({
+      title: typeof r?.title === 'string' ? r.title : '',
+      time: typeof r?.time === 'string' ? r.time : '',
+    }))
+    .filter((r) => r.title);
+
+  const prompt = `You are a JSON-only organizer. Turn the user's unstructured brain dump into actionable items.
+
+USER INPUT:
+${input}
+
+EXISTING WORKFLOWS (avoid duplicates):
+${JSON.stringify(workflowTitles)}
+
+EXISTING ROUTINES (avoid duplicates):
+${JSON.stringify(routineTitles)}
+
+RULES:
+- Output ONLY valid JSON (no markdown, no commentary)
+- Prefer small, concrete steps (ADHD-friendly)
+- If something is unclear, put it into "notes" instead of guessing
+- For routines, use time format HH:MM (24h)
+- Keep it compact (max 5 workflows, max 8 routines, max 12 notes)
+- ${getLanguageInstruction()}
+
+OUTPUT SCHEMA (strict):
+{
+  "workflows": [{"title":"...","subtitle":"optional","steps":["Step 1","Step 2"]}],
+  "routines": [{"title":"...","time":"09:00"}],
+  "notes": ["..."]
+}`;
+
+  const response = await askGemini(prompt, {}, userId);
+  logger.log('Chaos dump raw response:', response);
+
+  try {
+    const jsonMatch = response.match(JSON_OBJECT_GREEDY_RE);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return normalizeChaosParseResult(parsed, pipelines, routines);
+    }
+  } catch (e) {
+    console.error('Failed to parse chaos dump:', e, response);
+  }
+
+  return { workflows: [], routines: [], notes: [] };
+};
+
+export const estimateTaskTime = async (taskName, taskMemo = '', userId = null) => {
   const prompt = `Estimate how long this task will take for someone with ADHD (include buffer time for context switching).
 
 Task: ${taskName}
@@ -355,10 +535,10 @@ Respond with ONLY a JSON object, no other text:
   "breakdown": "Brief breakdown if task > 15 min"
 }`;
 
-  const response = await askGemini(prompt);
+  const response = await askGemini(prompt, {}, userId);
   
   try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.match(JSON_OBJECT_GREEDY_RE);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
@@ -369,7 +549,7 @@ Respond with ONLY a JSON object, no other text:
   return { minutes: 25, breakdown: null };
 };
 
-export const getDailySummary = async (pipelines, routines) => {
+export const getDailySummary = async (pipelines, routines, userId = null) => {
   const completedRoutines = routines.filter(r => r.done);
   const pendingRoutines = routines.filter(r => !r.done);
   
@@ -411,10 +591,10 @@ Respond with ONLY this JSON format:
   "mood": "great" | "good" | "okay" | "needs_improvement"
 }`;
 
-  const response = await askGemini(prompt);
+  const response = await askGemini(prompt, {}, userId);
   
   try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.match(JSON_OBJECT_GREEDY_RE);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
@@ -425,7 +605,7 @@ Respond with ONLY this JSON format:
   return getFallbackTexts().dailySummary;
 };
 
-export const suggestOptimalTime = async (taskTitle, userEnergy = 'medium') => {
+export const suggestOptimalTime = async (taskTitle, userEnergy = 'medium', userId = null) => {
   const hour = new Date().getHours();
   
   const prompt = `You are DailyWave AI. Suggest the best time to do this task for someone with ADHD.
@@ -451,10 +631,10 @@ Respond with ONLY this JSON:
   "energyRequired": "low" | "medium" | "high"
 }`;
 
-  const response = await askGemini(prompt);
+  const response = await askGemini(prompt, {}, userId);
   
   try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.match(JSON_OBJECT_GREEDY_RE);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
@@ -465,7 +645,7 @@ Respond with ONLY this JSON:
   return getFallbackTexts().suggestOptimalTime;
 };
 
-export const analyzeRoutinePatterns = async (routines, completionHistory = []) => {
+export const analyzeRoutinePatterns = async (routines, completionHistory = [], userId = null) => {
   const routineStats = routines.map(r => ({
     title: r.title,
     time: r.time,
@@ -493,10 +673,10 @@ Respond with ONLY this JSON:
   "topSuggestion": "Most important suggestion (max 25 words)"
 }`;
 
-  const response = await askGemini(prompt);
+  const response = await askGemini(prompt, {}, userId);
   
   try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.match(JSON_OBJECT_GREEDY_RE);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
@@ -507,7 +687,7 @@ Respond with ONLY this JSON:
   return getFallbackTexts().analyzeRoutinePatterns;
 };
 
-export const getQuickActions = async (pipelines, routines, currentEnergy = 'medium') => {
+export const getQuickActions = async (pipelines, routines, currentEnergy = 'medium', userId = null) => {
   const hour = new Date().getHours();
   const pendingRoutines = routines.filter(r => !r.done);
   const activeTasks = [];
@@ -545,10 +725,10 @@ Respond with ONLY this JSON array:
   }
 ]`;
 
-  const response = await askGemini(prompt);
+  const response = await askGemini(prompt, {}, userId);
   
   try {
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    const jsonMatch = response.match(JSON_ARRAY_RE);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
@@ -559,7 +739,7 @@ Respond with ONLY this JSON array:
   return getFallbackTexts().quickActions;
 };
 
-export const enhanceWorkflow = async (workflowTitle, currentSteps) => {
+export const enhanceWorkflow = async (workflowTitle, currentSteps, userId = null) => {
   const stepsText = currentSteps.length > 0 
     ? currentSteps.map((s, i) => `${i + 1}. ${s.title || s.name || ''}`).join('\n')
     : 'No steps yet';
@@ -609,10 +789,10 @@ Rules:
 - Focus on practical, actionable steps for ADHD users
 - ${getLanguageInstruction()}`;
 
-  const response = await askGemini(prompt);
+  const response = await askGemini(prompt, {}, userId);
   
   try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = response.match(JSON_OBJECT_GREEDY_RE);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }

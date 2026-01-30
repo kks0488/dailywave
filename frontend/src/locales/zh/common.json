@@ -48,7 +48,32 @@
     "now": "当前"
   },
   "routine": {
-    "deleteConfirm": "确定要删除此日程吗？"
+    "deleteConfirm": "确定要删除此日程吗？",
+    "markComplete": "标记为完成",
+    "markIncomplete": "标记为未完成",
+    "delete": "删除日程",
+    "addMorning": "添加上午日程",
+    "addAfternoon": "添加下午日程"
+  },
+  "recipes": {
+    "title": "流程模板",
+    "desc": "将工作流保存为可复用的模板（本地保存）。",
+    "empty": "还没有模板。右键点击一个工作流并保存为模板。",
+    "save": "保存为模板",
+    "saved": "已保存到模板",
+    "use": "使用",
+    "used": "已将模板添加为工作流",
+    "delete": "删除",
+    "deleteConfirm": "确定要删除此模板吗？",
+    "steps": "步骤"
+  },
+  "history": {
+    "title": "历史",
+    "desc": "用于 Victory Wall / 模式洞察（本地保存）。",
+    "events": "事件",
+    "clear": "清除",
+    "cleared": "历史已清除。",
+    "clearConfirm": "确定要清除所有历史事件吗？"
   },
   "settings": {
     "title": "设置与数据",
@@ -96,6 +121,7 @@
     "tabRecommend": "现在做什么?",
     "tabQuick": "快速任务",
     "tabSummary": "今日总结",
+    "tabChaos": "混沌倾倒",
     "setupTitle": "接下来做什么?",
     "setupDesc": "连接AI获取个性化任务推荐",
     "setupButton": "设置AI",
@@ -117,6 +143,36 @@
     "chatToggle": "AI命令",
     "chatPlaceholder": "例如：\"早上9点添加运动到日程\""
   },
+  "chaos": {
+    "title": "混沌收件箱",
+    "desc": "把未整理的倾倒内容保存在这里，避免丢失输入（本地存储）。",
+    "empty": "还没有内容。用“混沌倾倒”标签保存一条。",
+    "count": "条目",
+    "noInput": "请先写点内容。",
+    "placeholder": "把所有东西都倒在这里，我们会安全地整理。",
+    "aiHint": "随时都能保存。连接AI后可自动整理。",
+    "save": "保存到收件箱",
+    "saved": "已保存到混沌收件箱。",
+    "saveUnavailable": "暂时无法保存。",
+    "organize": "用AI整理",
+    "preview": "预览",
+    "apply": "应用",
+    "applied": "已应用到你的工作流。",
+    "applyUnavailable": "暂时无法应用。",
+    "nothingToApply": "没有可应用的内容。",
+    "emptyResult": "没有找到可执行的项目。文本会保留在收件箱。",
+    "alreadyExists": "这些项目似乎已存在。",
+    "workflows": "工作流",
+    "routines": "日程",
+    "notes": "笔记",
+    "copy": "复制",
+    "copied": "已复制。",
+    "delete": "删除",
+    "deleteConfirm": "删除这条内容？",
+    "clear": "清空",
+    "cleared": "已清空混沌收件箱。",
+    "clearConfirm": "清空所有混沌收件箱条目？"
+  },
   "auth": {
     "signIn": "登录",
     "subtitle": "登录以在设备间同步",
@@ -126,5 +182,43 @@
     "guest": "以访客身份继续",
     "notConfigured": "云同步未配置。使用本地存储。",
     "signOut": "退出登录"
+  },
+  "victory": {
+    "title": "胜利墙",
+    "subtitle": "每一个小胜利都算数。",
+    "tried": "尝试",
+    "done": "完成",
+    "left": "剩余",
+    "noShameTitle": "不责备的夜晚",
+    "gentleTitle": "温柔总结",
+    "noShameBody": "你今天出现了，这很重要。",
+    "gentleBody": "没关系，选择一个小小的下一步就好。",
+    "tomorrowStartWith": "明天先从",
+    "tomorrowJustOne": "明天只要一个小步骤就足够。",
+  "insightTitle": "模式",
+  "insightText": "胜利多发生在",
+  "insightNone": "继续记录，数据越多洞察越好。",
+  "coachTitle": "习惯模式教练",
+  "coachCta": "添加 AI 洞察",
+  "coachConnect": "连接 AI",
+  "coachLoading": "分析中…",
+  "coachHint": "连接 AI 可获得习惯模式洞察。本地洞察仍可使用。",
+  "coachError": "AI 分析失败，仅显示本地洞察。",
+  "coachScore": "评分",
+  "coachEmpty": "暂无更多洞察。",
+  "timeline": "时间线",
+  "timelineEmpty": "还没有事件。任何小行动都算胜利。",
+  "event": {
+    "session": "打开应用",
+    "routineCreated": "创建日程",
+      "routineDone": "日程完成",
+      "routineUndo": "取消勾选日程",
+      "pipelineCreated": "创建工作流",
+      "stepCreated": "添加步骤",
+      "stepDone": "步骤完成",
+      "recipeSaved": "保存为模板",
+      "aiUsed": "使用AI推荐",
+      "generic": "活动"
+    }
   }
 }

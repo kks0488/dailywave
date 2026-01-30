@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCommandStore } from '../store/useCommandStore';
 import { toast } from '../store/useToastStore';
-import ToastContainer from './Toast';
 import { PipelineSkeleton, RoutineSkeleton } from './Skeleton';
 import { EmptyPipelines } from './EmptyState';
-import WhatsNext from './WhatsNext';
-import { getApiKey, setApiKey, hasApiKey, enhanceWorkflow } from '../lib/gemini';
+const WhatsNext = lazy(() => import('./WhatsNext'));
+import { getApiKey, setApiKey, hasApiKey, enhanceWorkflow, analyzeRoutinePatterns } from '../lib/gemini';
+import { memoryTracker } from '../lib/memoryTracker';
+import { useAuthStore } from '../store/useAuthStore';
+import { loadFromSupabase, saveToSupabase } from '../lib/supabaseSync';
+import { logger } from '../lib/logger';
+import { normalizeRoutineCoachResult } from '../lib/routineCoach';
 import {
     Check, Plus, X, Settings, ChevronRight, ChevronLeft,
     MoreHorizontal, RotateCcw, Box, Briefcase,
     Zap, Link, Archive, Maximize2, Minimize2, Trash2, Palette,
-    Download, Upload, Save, Calendar, Copy, Sun, Moon, Sparkles, Wand2
+    Download, Upload, Save, Calendar, Copy, Sun, Moon, Sparkles, Wand2, Trophy
 } from 'lucide-react';
 import './AppleCommandCenter.css';
 
@@ -25,33 +29,69 @@ import './AppleCommandCenter.css';
 
 const AppleCommandCenter = () => {
   const { t, i18n } = useTranslation();
-  const backendUrl = import.meta.env.VITE_API_URL || '';
+  const backendUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || '';
+  const apiSecretKey = import.meta.env.VITE_API_SECRET_KEY || '';
+  const { user, isGuest, initialize: initializeAuth } = useAuthStore();
 
+  // Data selectors - only re-render when these specific values change
+  const pipelines = useCommandStore(s => s.pipelines);
+  const routines = useCommandStore(s => s.routines);
+  const sopLibrary = useCommandStore(s => s.sopLibrary);
+  const completionHistory = useCommandStore(s => s.completionHistory);
+  const chaosInbox = useCommandStore(s => s.chaosInbox);
+
+  // Actions - stable references, never trigger re-renders
   const {
-    pipelines,
-    routines,
-    addPipeline,
-    addRoutine,
-    deleteRoutine,
-    toggleRoutine,
-    deletePipeline,
-    deleteStep,
-    updateStepStatus,
-    addStep,
-    insertStep,
-    reorderSteps,
-    renameStep,
-    renamePipeline,
-    reorderPipelines,
-    updateStepDescription,
-    hydrate,
-    undo,
-    redo
-  } = useCommandStore();
+    addPipeline, addRoutine, deleteRoutine, toggleRoutine,
+    deletePipeline, deleteStep, updateStepStatus,
+    addStep, insertStep, reorderSteps, renameStep,
+    renamePipeline, reorderPipelines, updateStepDescription,
+    hydrate, undo, redo,
+    addSopRecipe, deleteSopRecipe,
+    addHistoryEvent, clearHistory,
+    addChaosDump, updateChaosDump, deleteChaosDump, clearChaosInbox,
+  } = useMemo(() => useCommandStore.getState(), []);
 
   const [isLoading, setIsLoading] = useState(true);
   const [editingStep, setEditingStep] = useState(null);
   const [aiApiKey, setAiApiKey] = useState(getApiKey());
+  const [isVictoryOpen, setIsVictoryOpen] = useState(false);
+  const [routineCoachResult, setRoutineCoachResult] = useState(null);
+  const [routineCoachLoading, setRoutineCoachLoading] = useState(false);
+  const [routineCoachError, setRoutineCoachError] = useState('');
+  const [anonUserId] = useState(() => {
+    const key = 'dailywave_anon_user_id';
+    const existing = localStorage.getItem(key);
+    if (existing) return existing;
+    const next = crypto.randomUUID();
+    localStorage.setItem(key, next);
+    return next;
+  });
+
+  const trackingUserId = user && !isGuest ? user.id : anonUserId;
+  const todayKey = useMemo(() => {
+    const now = new Date();
+    const yyyy = String(now.getFullYear());
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
+  const sessionTrackedRef = React.useRef(new Set());
+  useEffect(() => {
+    if (!trackingUserId) return;
+    if (sessionTrackedRef.current.has(trackingUserId)) return;
+    sessionTrackedRef.current.add(trackingUserId);
+
+    memoryTracker.sessionStart(trackingUserId);
+    addHistoryEvent({
+      type: 'session_start',
+      userId: trackingUserId,
+      hour: new Date().getHours(),
+      dayOfWeek: new Date().getDay(),
+      date: todayKey,
+    });
+  }, [addHistoryEvent, todayKey, trackingUserId]);
 
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -62,11 +102,21 @@ const AppleCommandCenter = () => {
     return 'light';
   });
 
-  const nowDate = new Date();
-  const weekdayLabel = new Intl.DateTimeFormat(i18n.language || 'en', { weekday: 'short' }).format(nowDate);
-  const monthLabel = String(nowDate.getMonth() + 1).padStart(2, '0');
-  const dayLabel = String(nowDate.getDate()).padStart(2, '0');
-  const sidebarDate = `${weekdayLabel}, ${monthLabel}.${dayLabel}`;
+  useEffect(() => {
+    initializeAuth?.().catch(() => {});
+    return () => {
+      const sub = useAuthStore.getState()._authSubscription;
+      sub?.unsubscribe?.();
+    };
+  }, [initializeAuth]);
+
+  const sidebarDate = useMemo(() => {
+    const now = new Date();
+    const weekday = new Intl.DateTimeFormat(i18n.language || 'en', { weekday: 'short' }).format(now);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${weekday}, ${mm}.${dd}`;
+  }, [i18n.language]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -82,58 +132,154 @@ const AppleCommandCenter = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
 
+  const runRoutineCoach = async () => {
+    if (!hasApiKey()) {
+      setIsSettingsOpen(true);
+      return;
+    }
+
+    setRoutineCoachLoading(true);
+    setRoutineCoachError('');
+    try {
+      const result = await analyzeRoutinePatterns(routines, completionHistory, trackingUserId);
+      setRoutineCoachResult(normalizeRoutineCoachResult(result));
+
+      memoryTracker.routinePatternCoachUsed?.(trackingUserId, {
+        routinesCount: Array.isArray(routines) ? routines.length : 0,
+        historyCount: Array.isArray(completionHistory) ? completionHistory.length : 0,
+        usedAt: new Date().toISOString(),
+      });
+    } catch {
+      setRoutineCoachError(t('victory.coachError', 'AI coach failed. Showing local insights only.'));
+    } finally {
+      setRoutineCoachLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // 1. Load from Backend (local dev) or localStorage (production)
-    if (backendUrl) {
-      fetch(`${backendUrl}/api/persistence/load`)
-          .then(res => res.json())
-          .then(data => {
-              if (data.status === 'loaded' && data.data) {
-                  hydrate(data.data);
-                  console.log("Loaded state from backend file.");
-              }
-          })
-          .catch(() => {
-              console.log("Backend not available, using localStorage");
-              const saved = localStorage.getItem('dailywave_state');
-              if (saved) {
-                  try {
-                    hydrate(JSON.parse(saved));
-                  } catch (e) {
-                    console.error('Failed to parse local storage state', e);
-                    localStorage.removeItem('dailywave_state');
-                  }
-              }
-          })
-          .finally(() => {
-              setTimeout(() => setIsLoading(false), 500);
+    // 1. Load: Supabase (logged in) → Backend file → localStorage
+    const loadData = async () => {
+      const lastOpenedStorageKey = 'dailywave_last_opened_date';
+      const lastOpenedDate = localStorage.getItem(lastOpenedStorageKey) || '';
+
+      const readLocalAux = () => {
+        const saved = localStorage.getItem('dailywave_state');
+        if (!saved) return { sopLibrary: [], completionHistory: [], chaosInbox: [] };
+        try {
+          const parsed = JSON.parse(saved);
+          return {
+            sopLibrary: Array.isArray(parsed?.sopLibrary) ? parsed.sopLibrary : [],
+            completionHistory: Array.isArray(parsed?.completionHistory) ? parsed.completionHistory : [],
+            chaosInbox: Array.isArray(parsed?.chaosInbox) ? parsed.chaosInbox : [],
+          };
+        } catch {
+          return { sopLibrary: [], completionHistory: [], chaosInbox: [] };
+        }
+      };
+
+      const normalizeRoutines = (rawRoutines) => {
+        const list = Array.isArray(rawRoutines) ? rawRoutines : [];
+        return list.map((routine) => {
+          const base = typeof routine === 'object' && routine !== null ? routine : {};
+          const rawDoneDate = base.doneDate || base.done_date || null;
+          const doneDate = typeof rawDoneDate === 'string' ? rawDoneDate.slice(0, 10) : null;
+
+          if (doneDate) {
+            return { ...base, done: doneDate === todayKey, doneDate };
+          }
+
+          // Legacy: no doneDate → treat as "today only if we already opened today"
+          const done = lastOpenedDate === todayKey ? !!base.done : false;
+          return { ...base, done, doneDate: done ? todayKey : null };
+        });
+      };
+
+      const normalizeState = (rawState, aux) => {
+        const source = rawState && typeof rawState === 'object' ? rawState : {};
+        return {
+          pipelines: Array.isArray(source.pipelines) ? source.pipelines : [],
+          routines: normalizeRoutines(source.routines),
+          sopLibrary: Array.isArray(source.sopLibrary) ? source.sopLibrary : aux.sopLibrary,
+          completionHistory: Array.isArray(source.completionHistory) ? source.completionHistory : aux.completionHistory,
+          chaosInbox: Array.isArray(source.chaosInbox) ? source.chaosInbox : aux.chaosInbox,
+        };
+      };
+
+      const aux = readLocalAux();
+
+      // Try Supabase first for logged-in users
+      if (user && !isGuest) {
+        const sbData = await loadFromSupabase(user.id);
+        if (sbData && (sbData.pipelines.length > 0 || sbData.routines.length > 0)) {
+          hydrate(normalizeState({ ...sbData, sopLibrary: undefined, completionHistory: undefined }, aux));
+          logger.log("Loaded state from Supabase.");
+          localStorage.setItem(lastOpenedStorageKey, todayKey);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fallback: Backend file (local dev)
+      if (backendUrl) {
+        try {
+          const res = await fetch(`${backendUrl}/api/persistence/load`, {
+            headers: {
+              ...(apiSecretKey && { 'X-API-Key': apiSecretKey }),
+            },
           });
-    } else {
+          const data = await res.json();
+          if (data.status === 'loaded' && data.data) {
+            hydrate(normalizeState(data.data, aux));
+            logger.log("Loaded state from backend file.");
+            localStorage.setItem(lastOpenedStorageKey, todayKey);
+            setIsLoading(false);
+            return;
+          }
+        } catch {
+          logger.log("Backend not available, using localStorage");
+        }
+      }
+
+      // Fallback: localStorage
       const saved = localStorage.getItem('dailywave_state');
       if (saved) {
-          try {
-            hydrate(JSON.parse(saved));
-          } catch (e) {
-            console.error('Failed to parse local storage state', e);
-            localStorage.removeItem('dailywave_state');
-          }
+        try {
+          hydrate(normalizeState(JSON.parse(saved), aux));
+        } catch (e) {
+          console.error('Failed to parse local storage state', e);
+          localStorage.removeItem('dailywave_state');
+        }
       }
-      setTimeout(() => setIsLoading(false), 300);
-    }
+      localStorage.setItem(lastOpenedStorageKey, todayKey);
+      setIsLoading(false);
+    };
+
+    loadData().catch(() => setIsLoading(false));
 
     // 2. Auto-Save Subscription
     let timeoutId;
     const save = (state) => {
-        const payload = { 
-            pipelines: state.pipelines, 
+        const payload = {
+            pipelines: state.pipelines,
             routines: state.routines,
-            sopLibrary: state.sopLibrary
+            sopLibrary: state.sopLibrary,
+            completionHistory: state.completionHistory,
+            chaosInbox: state.chaosInbox,
         };
         localStorage.setItem('dailywave_state', JSON.stringify(payload));
+
+        // Save to Supabase for logged-in users
+        if (user && !isGuest) {
+          saveToSupabase(user.id, payload).catch(() => {});
+        }
+
         if (backendUrl) {
           fetch(`${backendUrl}/api/persistence/save`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                ...(apiSecretKey && { 'X-API-Key': apiSecretKey }),
+              },
               body: JSON.stringify(payload)
           }).catch(() => {});
         }
@@ -148,7 +294,7 @@ const AppleCommandCenter = () => {
         unsubscribe();
         clearTimeout(timeoutId);
     };
-  }, [backendUrl, hydrate]);
+  }, [apiSecretKey, backendUrl, hydrate, todayKey, user, isGuest]);
 
 
   // --- DELETE CONFIRMATION STATE ---
@@ -307,7 +453,14 @@ const AppleCommandCenter = () => {
 
   // --- DATA MANAGEMENT HANDLERS ---
   const handleExportData = () => {
-      const dataStr = JSON.stringify({ pipelines, routines }, null, 2);
+      const dataStr = JSON.stringify({
+        pipelines,
+        routines,
+        sopLibrary,
+        completionHistory,
+        chaosInbox,
+        exportedAt: new Date().toISOString(),
+      }, null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -327,7 +480,13 @@ const AppleCommandCenter = () => {
           try {
               const parsed = JSON.parse(event.target.result);
               if (parsed.pipelines && parsed.routines) {
-                  hydrate(parsed);
+                  hydrate({
+                    pipelines: parsed.pipelines,
+                    routines: parsed.routines,
+                    sopLibrary: parsed.sopLibrary || [],
+                    completionHistory: parsed.completionHistory || [],
+                    chaosInbox: parsed.chaosInbox || [],
+                  });
                   toast.success(t('settings.restoreSuccess'));
                   setIsSettingsOpen(false);
               } else {
@@ -343,7 +502,7 @@ const AppleCommandCenter = () => {
 
   const handleResetData = () => {
       if (confirm(t('settings.resetConfirm'))) {
-        hydrate({ pipelines: [], routines: [] });
+        hydrate({ pipelines: [], routines: [], sopLibrary: [], completionHistory: [], chaosInbox: [] });
         setIsSettingsOpen(false);
         toast.success(t('settings.dataReset'));
       }
@@ -451,6 +610,14 @@ const AppleCommandCenter = () => {
       }
 
       addRoutine({ title: newRoutineText, time: newRoutineTime, type: finalType });
+      addHistoryEvent({
+        type: 'routine_created',
+        userId: trackingUserId,
+        title: newRoutineText,
+        time: newRoutineTime,
+        routineType: finalType,
+        date: todayKey,
+      });
       setNewRoutineText('');
       setAddingRoutineType(null);
   };
@@ -461,7 +628,19 @@ const AppleCommandCenter = () => {
       // Smart Fallback: If user didn't pick a color, auto-assign the next one
       const finalColor = newPipeColor || ALL_COLORS[pipelines.length % ALL_COLORS.length];
       
-      addPipeline(newPipeTitle, newPipeSubtitle, finalColor, getIconType(newPipeTitle));
+      const createdTitle = newPipeTitle;
+      const createdSubtitle = newPipeSubtitle;
+      const pipelineId = addPipeline(createdTitle, createdSubtitle, finalColor, getIconType(createdTitle));
+
+      memoryTracker.pipelineCreated(trackingUserId, createdTitle);
+      addHistoryEvent({
+        type: 'pipeline_created',
+        userId: trackingUserId,
+        pipelineId,
+        title: createdTitle,
+        subtitle: createdSubtitle,
+        date: todayKey,
+      });
       closePipeModal();
   };
 
@@ -474,8 +653,172 @@ const AppleCommandCenter = () => {
       const stepList = buildStepsFromTitles(steps);
       const finalSteps = stepList.length ? stepList : buildStepsFromTitles(['Start', 'Finish']);
 
-      addPipeline(workflowTitle, workflowSubtitle, finalColor, getIconType(workflowTitle), { steps: finalSteps });
+      const pipelineId = addPipeline(workflowTitle, workflowSubtitle, finalColor, getIconType(workflowTitle), { steps: finalSteps });
+
+      memoryTracker.pipelineCreated(trackingUserId, workflowTitle);
+      addHistoryEvent({
+        type: 'pipeline_created',
+        userId: trackingUserId,
+        pipelineId,
+        title: workflowTitle,
+        subtitle: workflowSubtitle,
+        date: todayKey,
+        source: 'ai',
+      });
       return true;
+  };
+
+  const getChaosSnippet = (text) => {
+    const value = typeof text === 'string' ? text.trim() : '';
+    if (!value) return '';
+    return value.length > 140 ? `${value.slice(0, 140)}…` : value;
+  };
+
+  const handleChaosDumpSaved = ({ text, parsed = null, status, id } = {}) => {
+    const input = typeof text === 'string' ? text.trim() : '';
+    if (!input) return null;
+
+    const safeParsed = typeof parsed === 'object' && parsed !== null ? parsed : null;
+    const finalStatus = typeof status === 'string' ? status : safeParsed ? 'organized' : 'inbox';
+    const snippet = getChaosSnippet(input);
+
+    const dumpId = addChaosDump({ id, text: input, parsed: safeParsed, status: finalStatus });
+    if (!dumpId) return null;
+
+    memoryTracker.chaosDumpSaved(trackingUserId, {
+      snippet,
+      length: input.length,
+      hasParsed: !!safeParsed,
+      status: finalStatus,
+    });
+
+    addHistoryEvent({
+      type: 'chaos_dump_saved',
+      userId: trackingUserId,
+      snippet,
+      length: input.length,
+      hasParsed: !!safeParsed,
+      status: finalStatus,
+      date: todayKey,
+    });
+
+    return dumpId;
+  };
+
+  const handleChaosDumpUpdated = (dumpId, updates) => {
+    if (!dumpId) return false;
+    const patch = typeof updates === 'object' && updates !== null ? updates : {};
+    updateChaosDump(dumpId, patch);
+    return true;
+  };
+
+  const applyChaosParsed = (parsed) => {
+    const source = typeof parsed === 'object' && parsed !== null ? parsed : {};
+    const workflows = Array.isArray(source.workflows) ? source.workflows : [];
+    const routinesToAdd = Array.isArray(source.routines) ? source.routines : [];
+    const notes = Array.isArray(source.notes) ? source.notes : [];
+
+    let workflowsApplied = 0;
+    let routinesApplied = 0;
+
+    const existingWorkflowTitles = new Set(
+      pipelines
+        .map((p) => (typeof p?.title === 'string' ? p.title.trim().toLowerCase() : ''))
+        .filter(Boolean)
+    );
+
+    for (const wf of workflows) {
+      const title = typeof wf?.title === 'string' ? wf.title.trim() : '';
+      if (!title) continue;
+      const key = title.toLowerCase();
+      if (existingWorkflowTitles.has(key)) continue;
+
+      const ok = handleAiAddWorkflow({
+        title,
+        subtitle: typeof wf?.subtitle === 'string' ? wf.subtitle : '',
+        steps: Array.isArray(wf?.steps) ? wf.steps : [],
+      });
+
+      if (ok) {
+        workflowsApplied += 1;
+        existingWorkflowTitles.add(key);
+      }
+    }
+
+    const existingRoutineKeys = new Set(
+      routines
+        .map((r) => {
+          const title = typeof r?.title === 'string' ? r.title.trim().toLowerCase() : '';
+          const time = typeof r?.time === 'string' ? r.time.trim() : '';
+          return title ? `${title}|${time}` : '';
+        })
+        .filter(Boolean)
+    );
+
+    for (const r of routinesToAdd) {
+      const title = typeof r?.title === 'string' ? r.title.trim() : '';
+      if (!title) continue;
+
+      const time = typeof r?.time === 'string' ? r.time.trim().slice(0, 5) : '09:00';
+      const key = `${title.toLowerCase()}|${time}`;
+      if (existingRoutineKeys.has(key)) continue;
+
+      const hour = parseInt(time.split(':')[0], 10);
+      const type = hour >= 12 ? 'afternoon' : 'morning';
+      addRoutine({ title, time, type });
+      addHistoryEvent({
+        type: 'routine_created',
+        userId: trackingUserId,
+        title,
+        time,
+        routineType: type,
+        date: todayKey,
+        source: 'chaos',
+      });
+      routinesApplied += 1;
+      existingRoutineKeys.add(key);
+    }
+
+    memoryTracker.chaosDumpApplied(trackingUserId, {
+      workflowsApplied,
+      routinesApplied,
+      notesCount: notes.length,
+    });
+
+    addHistoryEvent({
+      type: 'chaos_dump_applied',
+      userId: trackingUserId,
+      workflowsApplied,
+      routinesApplied,
+      notesCount: notes.length,
+      date: todayKey,
+    });
+
+    return { workflowsApplied, routinesApplied, notesCount: notes.length };
+  };
+
+  const handleChaosDumpApply = ({ dumpId, text, parsed } = {}) => {
+    const safeParsed = typeof parsed === 'object' && parsed !== null ? parsed : null;
+    const hasTargets =
+      (safeParsed?.workflows || []).length > 0 ||
+      (safeParsed?.routines || []).length > 0;
+
+    if (!hasTargets) {
+      return false;
+    }
+
+    const input = typeof text === 'string' ? text.trim() : '';
+    if (dumpId) {
+      updateChaosDump(dumpId, {
+        ...(input ? { text: input } : {}),
+        ...(safeParsed ? { parsed: safeParsed } : {}),
+        status: 'applied',
+      });
+    } else if (input) {
+      dumpId = handleChaosDumpSaved({ text: input, parsed: safeParsed, status: 'applied' });
+    }
+
+    return applyChaosParsed(safeParsed);
   };
 
     const handlePipelineDelete = (id, e) => {
@@ -504,7 +847,27 @@ const AppleCommandCenter = () => {
 
   const saveStepStatus = (status) => {
     if (editingStep) {
-        updateStepStatus(editingStep.pipelineId, editingStep.step.id, status);
+        const prevStatus = editingStep.step.status;
+        const pipelineId = editingStep.pipelineId;
+        const stepId = editingStep.step.id;
+        const stepTitle = editingStep.step.title;
+
+        updateStepStatus(pipelineId, stepId, status);
+
+        if (status === 'done' && prevStatus !== 'done') {
+          const pipelineTitle = pipelines.find(p => p.id === pipelineId)?.title || '';
+          memoryTracker.stepCompleted(trackingUserId, pipelineTitle, stepTitle);
+          addHistoryEvent({
+            type: 'step_completed',
+            userId: trackingUserId,
+            pipelineId,
+            pipelineTitle,
+            stepId,
+            stepTitle,
+            date: todayKey,
+          });
+        }
+
         closeEditor();
     }
   };
@@ -607,6 +970,68 @@ const AppleCommandCenter = () => {
       });
   };
 
+  const handleSavePipelineAsRecipe = (pipelineId) => {
+      const pipeline = pipelines.find(p => p.id === pipelineId);
+      if (!pipeline) return;
+
+      addSopRecipe({
+        title: pipeline.title,
+        subtitle: pipeline.subtitle || '',
+        color: pipeline.color || 'blue',
+        iconType: pipeline.iconType || 'briefcase',
+        steps: (pipeline.steps || []).map((step) => ({
+          title: step.title,
+          description: step.description || '',
+        })),
+      });
+
+      addHistoryEvent({
+        type: 'recipe_saved',
+        userId: trackingUserId,
+        pipelineId: pipeline.id,
+        title: pipeline.title,
+        date: todayKey,
+      });
+
+      toast.success(t('recipes.saved', 'Saved to recipes'));
+  };
+
+  const handleCreatePipelineFromRecipe = (recipe) => {
+      if (!recipe) return;
+
+      const rawSteps = Array.isArray(recipe.steps) ? recipe.steps : [];
+      const steps = rawSteps.length > 0
+        ? rawSteps.map((step, index) => ({
+            title: step.title,
+            description: step.description || '',
+            status: index === 0 ? 'active' : 'locked',
+          }))
+        : buildStepsFromTitles(['Start', 'Finish']);
+
+      const pipelineId = addPipeline(
+        recipe.title || t('workflow.name', 'Workflow Name'),
+        recipe.subtitle || '',
+        recipe.color || ALL_COLORS[pipelines.length % ALL_COLORS.length],
+        recipe.iconType || 'briefcase',
+        { steps }
+      );
+
+      memoryTracker.pipelineCreated(trackingUserId, recipe.title);
+      addHistoryEvent({
+        type: 'pipeline_created',
+        userId: trackingUserId,
+        pipelineId,
+        title: recipe.title,
+        subtitle: recipe.subtitle || '',
+        source: 'recipe',
+        recipeId: recipe.id,
+        date: todayKey,
+      });
+
+      ensureActiveStep(pipelineId);
+      toast.success(t('recipes.used', 'Recipe added as workflow'));
+  };
+
   const handleConfirmAddStep = () => {
       if(!newStepTitle) return;
       if(stepAddDetails.index !== null) {
@@ -649,6 +1074,158 @@ const AppleCommandCenter = () => {
     return () => clearInterval(timer);
   }, []);
 
+  const handleToggleRoutineTracked = (routine) => {
+      if (!routine?.id) return;
+      const nextDone = !routine.done;
+
+      toggleRoutine(routine.id);
+
+      if (nextDone) {
+        memoryTracker.routineCompleted(trackingUserId, routine);
+        addHistoryEvent({
+          type: 'routine_completed',
+          userId: trackingUserId,
+          routineId: routine.id,
+          title: routine.title,
+          time: routine.time,
+          routineType: routine.type,
+          date: todayKey,
+        });
+      } else {
+        addHistoryEvent({
+          type: 'routine_unchecked',
+          userId: trackingUserId,
+          routineId: routine.id,
+          title: routine.title,
+          time: routine.time,
+          routineType: routine.type,
+          date: todayKey,
+        });
+      }
+  };
+
+  const getLocalDateKeyFromIso = (isoString) => {
+      const parsed = isoString ? new Date(isoString) : new Date();
+      const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
+      const yyyy = String(date.getFullYear());
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const formatClockTime = (isoString) => {
+      const parsed = isoString ? new Date(isoString) : new Date();
+      const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
+      return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+  };
+
+  const todayEvents = useMemo(() => {
+      const events = Array.isArray(completionHistory) ? completionHistory : [];
+      return events
+        .map((event) => {
+          const base = typeof event === 'object' && event !== null ? event : {};
+          const dateKey = typeof base.date === 'string' ? base.date : getLocalDateKeyFromIso(base.at);
+          return { ...base, _dateKey: dateKey };
+        })
+        .filter((event) => event._dateKey === todayKey)
+        .sort((a, b) => {
+          const aMs = typeof a?.at === 'string' ? Date.parse(a.at) : NaN;
+          const bMs = typeof b?.at === 'string' ? Date.parse(b.at) : NaN;
+          return (Number.isFinite(aMs) ? aMs : 0) - (Number.isFinite(bMs) ? bMs : 0);
+        });
+  }, [completionHistory, todayKey]);
+
+  const victoryStats = useMemo(() => {
+      const attemptedTypes = new Set([
+        'routine_completed',
+        'routine_unchecked',
+        'routine_created',
+        'step_created',
+        'step_completed',
+        'pipeline_created',
+        'recipe_saved',
+        'ai_recommendation_used',
+      ]);
+
+      const completedTypes = new Set(['routine_completed', 'step_completed']);
+
+      const attemptedCount = todayEvents.filter((e) => attemptedTypes.has(e.type)).length;
+      const completedCount = todayEvents.filter((e) => completedTypes.has(e.type)).length;
+
+      const remainingRoutines = routines.filter((r) => !r.done).length;
+      const remainingSteps = pipelines.reduce((sum, pipeline) => {
+        const steps = Array.isArray(pipeline.steps) ? pipeline.steps : [];
+        return sum + steps.filter((s) => s.status !== 'done').length;
+      }, 0);
+
+      return {
+        attemptedCount,
+        completedCount,
+        remainingCount: remainingRoutines + remainingSteps,
+        remainingRoutines,
+        remainingSteps,
+      };
+  }, [pipelines, routines, todayEvents]);
+
+  const victoryInsight = useMemo(() => {
+      const events = Array.isArray(completionHistory) ? completionHistory : [];
+      const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
+      const hourCounts = new Array(24).fill(0);
+
+      events.forEach((event) => {
+        const type = event?.type;
+        if (type !== 'routine_completed' && type !== 'step_completed') return;
+        const atMs = typeof event?.at === 'string' ? Date.parse(event.at) : NaN;
+        if (!Number.isFinite(atMs) || atMs < cutoff) return;
+        const hour = new Date(atMs).getHours();
+        hourCounts[hour] += 1;
+      });
+
+      const max = Math.max(...hourCounts);
+      if (max < 3) return null;
+      const hour = hourCounts.indexOf(max);
+      return { hour, count: max };
+  }, [completionHistory]);
+
+  const isEveningNow = new Date().getHours() >= 19;
+
+  const tomorrowCandidate = useMemo(() => {
+      const pendingRoutines = routines
+        .filter((r) => !r.done)
+        .slice()
+        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+      if (pendingRoutines[0]) {
+        return { kind: 'routine', title: pendingRoutines[0].title };
+      }
+
+      for (const pipeline of pipelines) {
+        const steps = Array.isArray(pipeline.steps) ? pipeline.steps : [];
+        const nextStep =
+          steps.find((s) => s.status === 'active') ||
+          steps.find((s) => s.status === 'pending') ||
+          steps.find((s) => s.status === 'locked');
+        if (nextStep?.title) {
+          return { kind: 'step', title: nextStep.title, pipelineTitle: pipeline.title };
+        }
+      }
+
+      return null;
+  }, [pipelines, routines]);
+
+  const getEventDisplay = (event) => {
+      const type = event?.type;
+      if (type === 'session_start') return { emoji: '🌊', text: t('victory.event.session', 'Opened the app') };
+      if (type === 'routine_created') return { emoji: '🕒', text: `${t('victory.event.routineCreated', 'Created routine')}: ${event.title || ''}`.trim() };
+      if (type === 'routine_completed') return { emoji: '✅', text: `${t('victory.event.routineDone', 'Routine completed')}: ${event.title || ''}`.trim() };
+      if (type === 'routine_unchecked') return { emoji: '↩️', text: `${t('victory.event.routineUndo', 'Routine unchecked')}: ${event.title || ''}`.trim() };
+      if (type === 'pipeline_created') return { emoji: '🧩', text: `${t('victory.event.pipelineCreated', 'Created workflow')}: ${event.title || ''}`.trim() };
+      if (type === 'step_created') return { emoji: '➕', text: `${t('victory.event.stepCreated', 'Added step')}: ${event.stepTitle || event.title || ''}`.trim() };
+      if (type === 'step_completed') return { emoji: '🏁', text: `${t('victory.event.stepDone', 'Step completed')}: ${event.stepTitle || ''}`.trim() };
+      if (type === 'recipe_saved') return { emoji: '📌', text: `${t('victory.event.recipeSaved', 'Saved as recipe')}: ${event.title || ''}`.trim() };
+      if (type === 'ai_recommendation_used') return { emoji: '✨', text: `${t('victory.event.aiUsed', 'Used AI recommendation')}: ${event.task || ''}`.trim() };
+      return { emoji: '•', text: t('victory.event.generic', 'Activity') };
+  };
+
   const renderRoutineList = (type) => {
       const sortedRoutines = routines
           .filter(r => r.type === type)
@@ -679,7 +1256,7 @@ const AppleCommandCenter = () => {
              <div key={r.id} className={`acc-routine-item ${r.done ? 'done' : ''}`}>
                 <button
                     className={`checkbox-circle ${type==='afternoon'?'evening':''} ${r.done ? 'checked' : ''}`}
-                    onClick={() => toggleRoutine(r.id)}
+                    onClick={() => handleToggleRoutineTracked(r)}
                     aria-label={r.done ? t('routine.markIncomplete', 'Mark as incomplete') : t('routine.markComplete', 'Mark as complete')}
                     aria-pressed={r.done}
                 >
@@ -788,6 +1365,9 @@ const AppleCommandCenter = () => {
                    <button className="mobile-theme-btn" onClick={toggleTheme} title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')} aria-label={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}>
                        {theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
                    </button>
+                   <button className="mobile-victory-btn" onClick={() => setIsVictoryOpen(true)} title={t('victory.title', 'Victory Wall')} aria-label={t('victory.title', 'Victory Wall')}>
+                       <Trophy size={18}/>
+                   </button>
                    <button className="mobile-settings-btn" onClick={() => setIsSettingsOpen(true)} title={t('settings.title')} aria-label={t('settings.title')}>
                        <Settings size={18}/>
                    </button>
@@ -810,6 +1390,9 @@ const AppleCommandCenter = () => {
                   <button className="acc-icon-btn" onClick={toggleTheme} title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}>
                       {theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
                   </button>
+                  <button className="acc-icon-btn" onClick={() => setIsVictoryOpen(true)} title={t('victory.title', 'Victory Wall')} aria-label={t('victory.title', 'Victory Wall')}>
+                    <Trophy size={18}/>
+                  </button>
                   <button className="acc-icon-btn" onClick={() => setIsSettingsOpen(true)} title={t('settings.title')} aria-label={t('settings.title')}>
                     <Settings size={18}/>
                   </button>
@@ -818,14 +1401,37 @@ const AppleCommandCenter = () => {
 
             <div className="acc-grid">
 {!isLoading && !focusedPipelineId && (
-                  <WhatsNext 
+                  <Suspense fallback={<div className="whats-next-card" />}>
+                  <WhatsNext
                       pipelines={pipelines} 
                       routines={routines} 
+                      userId={trackingUserId}
+                      onRecommendationUsed={(recommendation) => {
+                        if (!recommendation) return;
+                        memoryTracker.aiRecommendationUsed(trackingUserId, recommendation);
+                        addHistoryEvent({
+                          type: 'ai_recommendation_used',
+                          userId: trackingUserId,
+                          task: recommendation.task,
+                          reason: recommendation.reason,
+                          estimatedMinutes: recommendation.estimatedMinutes,
+                          date: todayKey,
+                        });
+                      }}
                       onOpenSettings={() => setIsSettingsOpen(true)}
                       onAddRoutine={(title, time) => {
                           const hour = parseInt(time.split(':')[0], 10);
                           const type = hour >= 12 ? 'afternoon' : 'morning';
                           addRoutine({ title, time, type });
+                          addHistoryEvent({
+                            type: 'routine_created',
+                            userId: trackingUserId,
+                            title,
+                            time,
+                            routineType: type,
+                            date: todayKey,
+                            source: 'ai',
+                          });
                       }}
                       onAddStep={(title, workflowName) => {
                           const stepTitle = typeof title === 'string' ? title.trim() : '';
@@ -839,13 +1445,26 @@ const AppleCommandCenter = () => {
                           if (pipeline) {
                               addStep(pipeline.id, stepTitle);
                               ensureActiveStep(pipeline.id);
+                              addHistoryEvent({
+                                type: 'step_created',
+                                userId: trackingUserId,
+                                pipelineId: pipeline.id,
+                                pipelineTitle: pipeline.title,
+                                stepTitle,
+                                date: todayKey,
+                                source: 'ai',
+                              });
                               return true;
                           }
 
                           return false;
                       }}
                       onAddWorkflow={(data) => handleAiAddWorkflow(data)}
+                      onChaosDumpSaved={(data) => handleChaosDumpSaved(data)}
+                      onChaosDumpUpdated={(dumpId, updates) => handleChaosDumpUpdated(dumpId, updates)}
+                      onChaosDumpApply={(data) => handleChaosDumpApply(data)}
                   />
+                  </Suspense>
               )}
              {isLoading ? (
                  <>
@@ -987,6 +1606,13 @@ const AppleCommandCenter = () => {
                 <button onClick={handleContextAdd}>
                     <Plus size={14}/> {t('step.add')}
                 </button>
+                {/* Save as Recipe */}
+                <button onClick={() => {
+                    handleSavePipelineAsRecipe(contextMenu.pipelineId);
+                    setContextMenu(prev => ({ ...prev, visible: false }));
+                }}>
+                    <Archive size={14}/> {t('recipes.save', 'Save as Recipe')}
+                </button>
                 {/* Delete */}
                 <button onClick={(e) => {
                     handlePipelineDelete(contextMenu.pipelineId, e);
@@ -995,6 +1621,160 @@ const AppleCommandCenter = () => {
                     <Trash2 size={14}/> {t('workflow.delete')}
                 </button>
             </div>
+        )}
+
+        {/* VICTORY WALL MODAL */}
+        {isVictoryOpen && (
+         <div className="modal-overlay" onClick={() => setIsVictoryOpen(false)}>
+             <div className="glass-modal victory-modal" onClick={e => e.stopPropagation()}>
+                 <div className="modal-header">
+                     <div className="modal-header-center">
+                         <button className="modal-back-btn" onClick={() => setIsVictoryOpen(false)}>
+                             <ChevronLeft size={24}/>
+                         </button>
+                         <h3>{t('victory.title', 'Victory Wall')}</h3>
+                     </div>
+                     <button className="close-btn" onClick={() => setIsVictoryOpen(false)}><X size={20}/></button>
+                 </div>
+
+                 <div className="victory-hero">
+                     <div className="victory-badge">
+                         <Trophy size={18} />
+                     </div>
+                     <div className="victory-hero-text">
+                         <div className="victory-date">{sidebarDate}</div>
+                         <div className="victory-subtitle">{t('victory.subtitle', 'Small wins count.')}</div>
+                     </div>
+                 </div>
+
+                 <div className="victory-stats">
+                     <div className="victory-stat">
+                         <div className="label">{t('victory.tried', 'Tried')}</div>
+                         <div className="value">{victoryStats.attemptedCount}</div>
+                     </div>
+                     <div className="victory-stat">
+                         <div className="label">{t('victory.done', 'Done')}</div>
+                         <div className="value">{victoryStats.completedCount}</div>
+                     </div>
+                     <div className="victory-stat">
+                         <div className="label">{t('victory.left', 'Left')}</div>
+                         <div className="value">{victoryStats.remainingCount}</div>
+                     </div>
+                 </div>
+
+                 <div className="victory-card">
+                     <div className="victory-card-title">
+                         {isEveningNow ? t('victory.noShameTitle', 'No‑Shame Evening') : t('victory.gentleTitle', 'Gentle Summary')}
+                     </div>
+                     <div className="victory-card-body">
+                         {isEveningNow
+                           ? t('victory.noShameBody', "You showed up today. That matters.")
+                           : t('victory.gentleBody', "You're doing fine. Pick one small next step.")
+                         }
+                     </div>
+                     <div className="victory-card-tip">
+                         {tomorrowCandidate
+                           ? `${t('victory.tomorrowStartWith', 'Tomorrow, start with')}: ${tomorrowCandidate.title}`
+                           : t('victory.tomorrowJustOne', 'Tomorrow, one small step is enough.')
+                         }
+                     </div>
+                 </div>
+
+	                 <div className="victory-insight">
+	                     <div className="victory-insight-title">{t('victory.insightTitle', 'Pattern')}</div>
+	                     <div className="victory-insight-body">
+	                         {victoryInsight
+	                           ? `${t('victory.insightText', 'Most wins happen around')} ${String(victoryInsight.hour).padStart(2, '0')}:00 (${victoryInsight.count})`
+	                           : t('victory.insightNone', 'Keep going — insights get better with more data.')
+	                         }
+	                     </div>
+	                 </div>
+
+	                 <div className="victory-coach">
+	                     <div className="victory-coach-header">
+	                         <div className="victory-coach-title">{t('victory.coachTitle', 'Routine Pattern Coach')}</div>
+	                         <button
+	                           className="victory-coach-btn"
+	                           onClick={runRoutineCoach}
+	                           disabled={routineCoachLoading}
+	                           aria-label={t('victory.coachCta', 'Add AI insights')}
+	                         >
+	                           <Sparkles size={14} />
+	                           {routineCoachLoading
+	                             ? t('victory.coachLoading', 'Analyzing...')
+	                             : hasApiKey()
+	                               ? t('victory.coachCta', 'Add AI insights')
+	                               : t('victory.coachConnect', 'Connect AI')}
+	                         </button>
+	                     </div>
+
+	                     {!hasApiKey() && (
+	                       <div className="victory-coach-hint">
+	                         {t('victory.coachHint', 'Connect AI to get routine pattern insights. Local insights still work.')}
+	                       </div>
+	                     )}
+
+	                     {!!routineCoachError && (
+	                       <div className="victory-coach-error">{routineCoachError}</div>
+	                     )}
+
+	                     {routineCoachResult && (
+	                       <div className="victory-coach-body">
+	                         <div className="victory-coach-summary">
+	                           <div className="victory-coach-score">
+	                             {t('victory.coachScore', 'Score')}: {routineCoachResult.overallScore}/100
+	                           </div>
+	                           <div className="victory-coach-top">
+	                             {routineCoachResult.topSuggestion || t('victory.coachEmpty', 'No additional insights yet.')}
+	                           </div>
+	                         </div>
+
+	                         {routineCoachResult.insights.length > 0 && (
+	                           <div className="victory-coach-list">
+	                             {routineCoachResult.insights.map((insight, idx) => {
+	                               const icon =
+	                                 insight.type === 'positive'
+	                                   ? '✨'
+	                                   : insight.type === 'warning'
+	                                     ? '⚠️'
+	                                     : '💡';
+	                               return (
+	                                 <div key={`${idx}-${insight.message}`} className="victory-coach-item">
+	                                   <div className="victory-coach-item-icon">{icon}</div>
+	                                   <div className="victory-coach-item-text">{insight.message}</div>
+	                                 </div>
+	                               );
+	                             })}
+	                           </div>
+	                         )}
+	                       </div>
+	                     )}
+	                 </div>
+	
+	                 <div className="victory-timeline">
+	                     <div className="victory-timeline-title">{t('victory.timeline', 'Timeline')}</div>
+	                     {todayEvents.length === 0 ? (
+	                         <p className="settings-text-muted" style={{ marginTop: 8 }}>
+                             {t('victory.timelineEmpty', 'No events yet. Any small action counts.')}
+                         </p>
+                     ) : (
+                         <div className="victory-timeline-list">
+                             {todayEvents.slice(-50).map((event) => {
+                                 const display = getEventDisplay(event);
+                                 const key = event.id || `${event.type}-${event.at}`;
+                                 return (
+                                     <div key={key} className="victory-event-row">
+                                         <div className="victory-event-time">{formatClockTime(event.at)}</div>
+                                         <div className="victory-event-emoji">{display.emoji}</div>
+                                         <div className="victory-event-text">{display.text}</div>
+                                     </div>
+                                 );
+                             })}
+                         </div>
+                     )}
+                 </div>
+             </div>
+         </div>
         )}
 
         {/* SETTINGS MODAL */}
@@ -1077,6 +1857,165 @@ const AppleCommandCenter = () => {
                  </div>
 
                  <div className="memo-section">
+                     <label>{t('recipes.title', 'Flow Recipes')}</label>
+                     <p className="settings-text-muted" style={{ marginBottom: '8px', lineHeight: '1.4' }}>
+                         {t('recipes.desc', 'Save workflows as reusable templates (stored locally).')}
+                     </p>
+
+                     {sopLibrary.length === 0 ? (
+                         <p className="settings-text-muted" style={{ marginTop: 0 }}>
+                             {t('recipes.empty', 'No recipes yet. Right-click a workflow to save one.')}
+                         </p>
+                     ) : (
+                         <div className="recipes-list">
+                             {sopLibrary.map((recipe) => (
+                                 <div key={recipe.id} className="recipe-row">
+                                     <div className="recipe-meta">
+                                         <div className="recipe-title">{recipe.title}</div>
+                                         <div className="recipe-subtitle">
+                                             {(recipe.steps?.length || 0)} {t('recipes.steps', 'steps')}
+                                         </div>
+                                     </div>
+                                     <div className="recipe-actions">
+                                         <button
+                                             className="status-option pending settings-btn-secondary recipe-btn"
+                                             onClick={() => handleCreatePipelineFromRecipe(recipe)}
+                                         >
+                                             <Plus size={16}/> {t('recipes.use', 'Use')}
+                                         </button>
+                                         <button
+                                             className="status-option locked settings-btn-danger recipe-btn"
+                                             onClick={() => {
+                                               if (confirm(t('recipes.deleteConfirm', 'Delete this recipe?'))) {
+                                                 deleteSopRecipe(recipe.id);
+                                               }
+                                             }}
+                                         >
+                                             <Trash2 size={16}/> {t('recipes.delete', 'Delete')}
+                                         </button>
+                                     </div>
+                                 </div>
+                             ))}
+                         </div>
+                     )}
+                 </div>
+
+                 <div className="memo-section">
+                     <label>{t('history.title', 'History')}</label>
+                     <p className="settings-text-muted" style={{ marginBottom: '8px', lineHeight: '1.4' }}>
+                         {t('history.desc', 'Used for Victory Wall & pattern insights (stored locally).')}
+                     </p>
+                     <div className="history-row">
+                         <div className="history-count">
+                             {t('history.events', 'Events')}: {completionHistory.length}
+                         </div>
+                         <button
+                             className="status-option locked settings-btn-danger"
+                             onClick={() => {
+                               if (confirm(t('history.clearConfirm', 'Clear all history events?'))) {
+                                 clearHistory();
+                                 toast.success(t('history.cleared', 'History cleared.'));
+                               }
+                             }}
+                         >
+                             <RotateCcw size={16}/> {t('history.clear', 'Clear')}
+                         </button>
+                     </div>
+                 </div>
+
+                 <div className="memo-section">
+                     <label>{t('chaos.title', 'Chaos Inbox')}</label>
+                     <p className="settings-text-muted" style={{ marginBottom: '8px', lineHeight: '1.4' }}>
+                         {t('chaos.desc', 'Unstructured dumps saved here so nothing gets lost (stored locally).')}
+                     </p>
+
+                     {chaosInbox.length === 0 ? (
+                         <p className="settings-text-muted" style={{ marginTop: 0 }}>
+                             {t('chaos.empty', 'No dumps yet. Use the Chaos Dump tab to save one.')}
+                         </p>
+                     ) : (
+                         <>
+                             <div className="chaos-inbox-header">
+                                 <div className="chaos-inbox-count">
+                                     {t('chaos.count', 'Items')}: {chaosInbox.length}
+                                 </div>
+                                 <button
+                                     className="status-option locked settings-btn-danger"
+                                     onClick={() => {
+                                       if (confirm(t('chaos.clearConfirm', 'Clear all chaos inbox items?'))) {
+                                         clearChaosInbox();
+                                         toast.success(t('chaos.cleared', 'Chaos inbox cleared.'));
+                                       }
+                                     }}
+                                 >
+                                     <RotateCcw size={16}/> {t('chaos.clear', 'Clear')}
+                                 </button>
+                             </div>
+
+                             <div className="chaos-inbox-list">
+                                 {chaosInbox.slice(0, 20).map((dump) => {
+                                   const created = dump?.createdAt ? new Date(dump.createdAt) : null;
+                                   const when = created && !Number.isNaN(created.getTime())
+                                     ? created.toLocaleString(i18n.language || 'en', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                                     : '';
+                                   const snippet = getChaosSnippet(dump?.text || '');
+                                   const hasParsed = !!dump?.parsed;
+
+                                   return (
+                                     <div key={dump.id} className="chaos-inbox-row">
+                                       <div className="chaos-inbox-meta">
+                                         <div className="chaos-inbox-when">{when}</div>
+                                         <div className="chaos-inbox-snippet">{snippet}</div>
+                                         <div className="chaos-inbox-status">
+                                           {dump?.status ? String(dump.status) : 'inbox'}{hasParsed ? ' · AI' : ''}
+                                         </div>
+                                       </div>
+                                       <div className="chaos-inbox-actions">
+                                         {hasParsed && (
+                                           <button
+                                             className="status-option pending settings-btn-secondary chaos-inbox-btn"
+                                             onClick={() => {
+                                               const { workflowsApplied, routinesApplied } = applyChaosParsed(dump.parsed);
+                                               updateChaosDump(dump.id, { status: 'applied' });
+                                               if (workflowsApplied + routinesApplied > 0) {
+                                                 toast.success(t('chaos.applied', 'Applied to your workflows.'));
+                                               } else {
+                                                 toast.info(t('chaos.alreadyExists', 'Looks like those items already exist.'));
+                                               }
+                                             }}
+                                           >
+                                             <Wand2 size={16}/> {t('chaos.apply', 'Apply')}
+                                           </button>
+                                         )}
+                                         <button
+                                           className="status-option pending settings-btn-secondary chaos-inbox-btn"
+                                           onClick={() => {
+                                             navigator.clipboard.writeText(dump?.text || '');
+                                             toast.success(t('chaos.copied', 'Copied.'));
+                                           }}
+                                         >
+                                           <Copy size={16}/> {t('chaos.copy', 'Copy')}
+                                         </button>
+                                         <button
+                                           className="status-option locked settings-btn-danger chaos-inbox-btn"
+                                           onClick={() => {
+                                             if (confirm(t('chaos.deleteConfirm', 'Delete this dump?'))) {
+                                               deleteChaosDump(dump.id);
+                                             }
+                                           }}
+                                         >
+                                           <Trash2 size={16}/> {t('chaos.delete', 'Delete')}
+                                         </button>
+                                       </div>
+                                     </div>
+                                   );
+                                 })}
+                             </div>
+                         </>
+                     )}
+                 </div>
+
+                 <div className="memo-section">
                      <label>{t('settings.calendar')}</label>
                      <p className="settings-text-muted" style={{ marginBottom: '8px', lineHeight: '1.4' }}>
                          {t('settings.calendarDesc')}
@@ -1084,7 +2023,7 @@ const AppleCommandCenter = () => {
                      <button
                          className="status-option pending settings-btn-secondary"
                           onClick={() => {
-                              const calUrl = `http://${window.location.hostname}:8030/api/calendar/feed`;
+                              const calUrl = backendUrl ? `${backendUrl}/api/calendar/feed` : `${window.location.origin}/api/calendar/feed`;
                               navigator.clipboard.writeText(calUrl);
                               toast.success(t('settings.calendarCopied'));
                           }}
@@ -1423,7 +2362,6 @@ const AppleCommandCenter = () => {
         </div>
       )}
 
-      <ToastContainer />
     </div>
   );
 };

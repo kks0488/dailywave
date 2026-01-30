@@ -1,5 +1,6 @@
 import asyncio
 import httpx
+from urllib.parse import urlparse
 from typing import Dict, Any, List
 import logging
 from schemas import Workflow, Node, Edge
@@ -7,6 +8,22 @@ from schemas import Workflow, Node, Edge
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+BLOCKED_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "metadata.google.internal"}
+BLOCKED_SCHEMES = {"file", "ftp", "gopher"}
+
+
+def is_safe_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme in BLOCKED_SCHEMES:
+            return False
+        hostname = parsed.hostname or ""
+        if hostname in BLOCKED_HOSTS or hostname.endswith(".internal") or hostname.startswith("10.") or hostname.startswith("192.168.") or hostname.startswith("172."):
+            return False
+        return True
+    except Exception:
+        return False
 
 class WorkflowExecutor:
     def __init__(self):
@@ -25,11 +42,13 @@ class WorkflowExecutor:
                 url = node.data.config.get("url")
                 method = node.data.config.get("method", "POST")
                 payload = node.data.config.get("payload", {})
-                
+
                 if not url:
                     raise ValueError("URL is required for API task")
-                
-                async with httpx.AsyncClient() as client:
+                if not is_safe_url(url):
+                    raise ValueError(f"Blocked URL for security: {url}")
+
+                async with httpx.AsyncClient(timeout=15.0) as client:
                     response = await client.request(method, url, json=payload)
                     return {"status": response.status_code, "data": response.json()}
             

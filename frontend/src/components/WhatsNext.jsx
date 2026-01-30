@@ -1,13 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, Play, Pause, RotateCcw, ChevronRight, Zap, BatteryLow, BatteryMedium, Send, MessageCircle, Sun, Trophy, ListTodo } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getWhatsNext, hasApiKey, parseAICommand, getDailySummary, getQuickActions } from '../lib/gemini';
+import { getWhatsNext, hasApiKey, parseAICommand, getDailySummary, getQuickActions, parseChaosDump } from '../lib/gemini';
 import { useToastStore } from '../store/useToastStore';
+import { logger } from '../lib/logger';
 import './WhatsNext.css';
 
-const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddStep, onAddWorkflow }) => {
+const WhatsNext = ({
+  pipelines,
+  routines,
+  userId,
+  onRecommendationUsed,
+  onOpenSettings,
+  onAddRoutine,
+  onAddStep,
+  onAddWorkflow,
+  onChaosDumpSaved,
+  onChaosDumpUpdated,
+  onChaosDumpApply,
+}) => {
   const { t } = useTranslation();
   const toast = useToastStore(state => state.addToast);
+  const aiEnabled = hasApiKey();
   
   const [recommendation, setRecommendation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,20 +30,28 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const [chatInput, setChatInput] = useState('');
-  const [chatMode, setChatMode] = useState(false);
   const [dailySummary, setDailySummary] = useState(null);
   const [quickActions, setQuickActions] = useState(null);
-  const [activeTab, setActiveTab] = useState('recommend');
+  const [activeTab, setActiveTab] = useState(() => (hasApiKey() ? 'recommend' : 'chaos'));
+  const [trackedRecommendationKey, setTrackedRecommendationKey] = useState(null);
   const timerRef = useRef(null);
+  const [chaosText, setChaosText] = useState('');
+  const [chaosPreview, setChaosPreview] = useState(null);
+  const [chaosDumpId, setChaosDumpId] = useState(null);
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
     if (!chatInput.trim() || isLoading) return;
+    if (!hasApiKey()) {
+      toast('warning', t('ai.noApiKey', 'Set up your AI key in settings'));
+      onOpenSettings?.();
+      return;
+    }
     
     setIsLoading(true);
     try {
-      const result = await parseAICommand(chatInput, pipelines, routines);
-      console.log('AI command result:', result);
+      const result = await parseAICommand(chatInput, pipelines, routines, userId);
+      logger.log('AI command result:', result);
       
       const data = result?.data || {};
       let handled = false;
@@ -79,11 +101,133 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
     }
   };
 
+  const handleChaosSave = () => {
+    const text = chaosText.trim();
+    if (!text) {
+      toast('warning', t('chaos.noInput', 'Write something first.'));
+      return;
+    }
+
+    if (chaosDumpId && typeof onChaosDumpUpdated === 'function') {
+      onChaosDumpUpdated(chaosDumpId, {
+        text,
+        parsed: chaosPreview,
+        status: chaosPreview ? 'organized' : 'inbox',
+      });
+      toast('success', t('chaos.saved', 'Saved to Chaos Inbox.'));
+      setChaosText('');
+      setChaosPreview(null);
+      setChaosDumpId(null);
+      return;
+    }
+
+    if (typeof onChaosDumpSaved === 'function') {
+      const savedId = onChaosDumpSaved({
+        text,
+        parsed: chaosPreview,
+        status: chaosPreview ? 'organized' : 'inbox',
+      });
+      if (!savedId) {
+        toast('warning', t('chaos.saveUnavailable', 'Saving is not available right now.'));
+        return;
+      }
+      toast('success', t('chaos.saved', 'Saved to Chaos Inbox.'));
+      setChaosText('');
+      setChaosPreview(null);
+      setChaosDumpId(null);
+      return;
+    }
+
+    toast('warning', t('chaos.saveUnavailable', 'Saving is not available right now.'));
+  };
+
+  const handleChaosOrganize = async () => {
+    const text = chaosText.trim();
+    if (!text || isLoading) return;
+    if (!hasApiKey()) {
+      toast('warning', t('ai.noApiKey', 'Set up your AI key in settings'));
+      onOpenSettings?.();
+      return;
+    }
+
+    let dumpId = chaosDumpId;
+    if (!dumpId && typeof onChaosDumpSaved === 'function') {
+      dumpId = await Promise.resolve(
+        onChaosDumpSaved({
+          text,
+          parsed: null,
+          status: 'inbox',
+        })
+      );
+      if (dumpId) setChaosDumpId(dumpId);
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await parseChaosDump(text, pipelines, routines, userId);
+      setChaosPreview(result);
+
+      const empty =
+        !result?.workflows?.length &&
+        !result?.routines?.length &&
+        !result?.notes?.length;
+      if (empty) {
+        toast('info', t('chaos.emptyResult', 'No actionable items found. Saved text will stay in your inbox.'));
+        if (dumpId && typeof onChaosDumpUpdated === 'function') {
+          onChaosDumpUpdated(dumpId, { status: 'inbox', parsed: null });
+        }
+      } else if (dumpId && typeof onChaosDumpUpdated === 'function') {
+        onChaosDumpUpdated(dumpId, { status: 'organized', parsed: result });
+      }
+    } catch (error) {
+      toast('error', `AI Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleChaosApply = async () => {
+    const text = chaosText.trim();
+    if (!chaosPreview) return;
+
+    const hasTargets =
+      (chaosPreview.workflows || []).length > 0 ||
+      (chaosPreview.routines || []).length > 0;
+
+    if (!hasTargets) {
+      toast('info', t('chaos.nothingToApply', 'Nothing to apply.'));
+      return;
+    }
+
+    if (typeof onChaosDumpApply !== 'function') {
+      toast('warning', t('chaos.applyUnavailable', 'Applying is not available right now.'));
+      return;
+    }
+
+    const result = await Promise.resolve(onChaosDumpApply({ dumpId: chaosDumpId, text, parsed: chaosPreview }));
+    if (result === false) return;
+
+    const workflowsApplied = typeof result?.workflowsApplied === 'number' ? result.workflowsApplied : null;
+    const routinesApplied = typeof result?.routinesApplied === 'number' ? result.routinesApplied : null;
+    const appliedCount = (workflowsApplied ?? 0) + (routinesApplied ?? 0);
+
+    if (workflowsApplied === null || routinesApplied === null) {
+      toast('success', t('chaos.applied', 'Applied to your workflows.'));
+    } else if (appliedCount > 0) {
+      toast('success', t('chaos.applied', 'Applied to your workflows.'));
+    } else {
+      toast('info', t('chaos.alreadyExists', 'Looks like those items already exist.'));
+    }
+    setChaosText('');
+    setChaosPreview(null);
+    setChaosDumpId(null);
+  };
+
   const fetchDailySummary = async () => {
     if (!hasApiKey()) return;
     setIsLoading(true);
     try {
-      const result = await getDailySummary(pipelines, routines);
+      const result = await getDailySummary(pipelines, routines, userId);
       setDailySummary(result);
     } catch (error) {
       toast('error', `AI Error: ${error.message}`);
@@ -96,7 +240,7 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
     if (!hasApiKey()) return;
     setIsLoading(true);
     try {
-      const result = await getQuickActions(pipelines, routines, energy);
+      const result = await getQuickActions(pipelines, routines, energy, userId);
       setQuickActions(result);
     } catch (error) {
       toast('error', `AI Error: ${error.message}`);
@@ -113,13 +257,14 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
 
     setIsLoading(true);
     try {
-      console.log('Fetching AI recommendation...');
-      const result = await getWhatsNext(pipelines, routines, energy);
-      console.log('AI result:', result);
+      logger.log('Fetching AI recommendation...');
+      const result = await getWhatsNext(pipelines, routines, energy, userId);
+      logger.log('AI result:', result);
       if (result) {
         setRecommendation(result);
         setTimeLeft(result.estimatedMinutes * 60);
         setTotalTime(result.estimatedMinutes * 60);
+        setTrackedRecommendationKey(null);
       } else {
         toast('warning', 'AI returned empty response. Try again.');
       }
@@ -132,23 +277,36 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
   };
 
   useEffect(() => {
-    if (timerRunning && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            setTimerRunning(false);
-            toast('success', t('ai.timeUp', 'Time is up! Great focus session.'));
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    if (!timerRunning) return () => clearInterval(timerRef.current);
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          setTimerRunning(false);
+          toast('success', t('ai.timeUp', 'Time is up! Great focus session.'));
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => clearInterval(timerRef.current);
-  }, [timerRunning]);
+  }, [timerRunning, toast, t]);
 
   const toggleTimer = () => {
-    setTimerRunning(!timerRunning);
+    const nextRunning = !timerRunning;
+    if (
+      nextRunning &&
+      recommendation &&
+      typeof onRecommendationUsed === 'function'
+    ) {
+      const key = `${recommendation.task}|${recommendation.reason}|${recommendation.estimatedMinutes}`;
+      if (trackedRecommendationKey !== key) {
+        onRecommendationUsed(recommendation);
+        setTrackedRecommendationKey(key);
+      }
+    }
+    setTimerRunning(nextRunning);
   };
 
   const resetTimer = () => {
@@ -166,22 +324,6 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
 
   const EnergyIcon = energy === 'high' ? Zap : energy === 'low' ? BatteryLow : BatteryMedium;
 
-  if (!hasApiKey()) {
-    return (
-      <div className="whats-next-card setup-prompt">
-        <div className="whats-next-inner">
-          <Sparkles size={24} className="sparkle-icon" />
-          <h3>{t('ai.setupTitle', "What's Next?")}</h3>
-          <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
-          <button className="setup-btn" onClick={onOpenSettings}>
-            {t('ai.setupButton', 'Set Up AI')}
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={`whats-next-card ${recommendation ? 'has-recommendation' : ''}`}>
       <div className="whats-next-inner">
@@ -197,6 +339,7 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
                 key={level}
                 className={`energy-btn ${energy === level ? 'active' : ''}`}
                 onClick={() => setEnergy(level)}
+                disabled={!aiEnabled}
                 title={t(`ai.energy.${level}`, level)}
               >
                 {level === 'high' ? <Zap size={14} /> : 
@@ -229,11 +372,27 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
             <Trophy size={16} />
             <span className="tab-label">{t('ai.tabSummary', 'Summary')}</span>
           </button>
+          <button
+            className={`ai-tab ${activeTab === 'chaos' ? 'active' : ''}`}
+            onClick={() => setActiveTab('chaos')}
+          >
+            <MessageCircle size={16} />
+            <span className="tab-label">{t('ai.tabChaos', 'Chaos Dump')}</span>
+          </button>
         </div>
 
         {activeTab === 'quick' && (
           <div className="quick-actions-content">
-            {isLoading ? (
+            {!aiEnabled ? (
+              <div className="ai-setup-inline">
+                <Sparkles size={20} className="sparkle-icon" />
+                <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
+                <button className="setup-btn" onClick={onOpenSettings}>
+                  {t('ai.setupButton', 'Set Up AI')}
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            ) : isLoading ? (
               <div className="loading-state">
                 <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>
               </div>
@@ -264,7 +423,16 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
 
       {activeTab === 'summary' && (
         <div className="daily-summary-content">
-          {isLoading ? (
+          {!aiEnabled ? (
+            <div className="ai-setup-inline">
+              <Sparkles size={20} className="sparkle-icon" />
+              <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
+              <button className="setup-btn" onClick={onOpenSettings}>
+                {t('ai.setupButton', 'Set Up AI')}
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          ) : isLoading ? (
             <div className="loading-state">
               <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>
             </div>
@@ -302,7 +470,16 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
         </div>
       )}
 
-      {activeTab === 'recommend' && recommendation ? (
+      {activeTab === 'recommend' && !aiEnabled ? (
+        <div className="ai-setup-inline">
+          <Sparkles size={20} className="sparkle-icon" />
+          <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
+          <button className="setup-btn" onClick={onOpenSettings}>
+            {t('ai.setupButton', 'Set Up AI')}
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      ) : activeTab === 'recommend' && recommendation ? (
         <div className="recommendation-content">
           <div className="task-display">
             <span className="task-name">{recommendation.task}</span>
@@ -369,21 +546,132 @@ const WhatsNext = ({ pipelines, routines, onOpenSettings, onAddRoutine, onAddSte
         </div>
       ) : null}
 
-        <div className="ai-chat-section">
-          <form onSubmit={handleChatSubmit} className="chat-form">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder={t('ai.chatPlaceholder', 'AI에게 말하기...')}
-              className="chat-input"
+        {activeTab === 'chaos' && (
+          <div className="chaos-dump-content">
+            <textarea
+              className="chaos-textarea"
+              value={chaosText}
+              onChange={(e) => {
+                setChaosText(e.target.value);
+                if (chaosDumpId) setChaosDumpId(null);
+                if (chaosPreview) setChaosPreview(null);
+              }}
+              placeholder={t('chaos.placeholder', 'Dump everything here. We will organize it safely.')}
               disabled={isLoading}
+              rows={4}
             />
-            <button type="submit" className="chat-send" disabled={isLoading || !chatInput.trim()}>
-              <Send size={16} />
-            </button>
-          </form>
-        </div>
+
+            <div className="chaos-actions">
+              <button
+                className="chaos-btn secondary"
+                onClick={handleChaosSave}
+                disabled={isLoading || !chaosText.trim()}
+              >
+                {t('chaos.save', 'Save to Inbox')}
+              </button>
+              <button
+                className="chaos-btn primary"
+                onClick={handleChaosOrganize}
+                disabled={isLoading || !chaosText.trim() || !aiEnabled}
+                title={!aiEnabled ? t('ai.noApiKey', 'Set up your AI key in settings') : undefined}
+              >
+                <Sparkles size={16} />
+                {t('chaos.organize', 'Organize with AI')}
+              </button>
+            </div>
+
+            {!aiEnabled && (
+              <div className="chaos-locked-hint">
+                <p>{t('chaos.aiHint', 'You can save anytime. Connect AI to auto-organize.')}</p>
+                <button className="setup-btn" onClick={onOpenSettings}>
+                  {t('ai.setupButton', 'Set Up AI')}
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+
+            {chaosPreview && (
+              <div className="chaos-preview">
+                <div className="chaos-preview-header">
+                  <div className="chaos-preview-title">{t('chaos.preview', 'Preview')}</div>
+                  <button
+                    className="chaos-btn primary"
+                    onClick={handleChaosApply}
+                    disabled={isLoading}
+                  >
+                    {t('chaos.apply', 'Apply')}
+                  </button>
+                </div>
+
+                {(chaosPreview.workflows || []).length > 0 && (
+                  <div className="chaos-preview-section">
+                    <div className="chaos-preview-section-title">{t('chaos.workflows', 'Workflows')}</div>
+                    <div className="chaos-preview-list">
+                      {chaosPreview.workflows.map((wf, idx) => (
+                        <div key={`${wf.title}-${idx}`} className="chaos-preview-item">
+                          <div className="chaos-preview-item-title">{wf.title}</div>
+                          {wf.subtitle ? (
+                            <div className="chaos-preview-item-subtitle">{wf.subtitle}</div>
+                          ) : null}
+                          {(wf.steps || []).length > 0 && (
+                            <div className="chaos-preview-steps">
+                              {(wf.steps || []).map((step, sIdx) => (
+                                <div key={`${wf.title}-s-${sIdx}`} className="chaos-preview-step">• {step}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(chaosPreview.routines || []).length > 0 && (
+                  <div className="chaos-preview-section">
+                    <div className="chaos-preview-section-title">{t('chaos.routines', 'Routines')}</div>
+                    <div className="chaos-preview-list">
+                      {chaosPreview.routines.map((r, idx) => (
+                        <div key={`${r.title}-${idx}`} className="chaos-preview-item">
+                          <div className="chaos-preview-item-title">{r.title}</div>
+                          <div className="chaos-preview-item-subtitle">{r.time}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(chaosPreview.notes || []).length > 0 && (
+                  <div className="chaos-preview-section">
+                    <div className="chaos-preview-section-title">{t('chaos.notes', 'Notes')}</div>
+                    <div className="chaos-preview-list">
+                      {chaosPreview.notes.map((note, idx) => (
+                        <div key={`${idx}`} className="chaos-preview-note">• {note}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {aiEnabled && (
+          <div className="ai-chat-section">
+            <form onSubmit={handleChatSubmit} className="chat-form">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={t('ai.chatPlaceholder', 'AI에게 말하기...')}
+                className="chat-input"
+                disabled={isLoading}
+              />
+              <button type="submit" className="chat-send" disabled={isLoading || !chatInput.trim()}>
+                <Send size={16} />
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );

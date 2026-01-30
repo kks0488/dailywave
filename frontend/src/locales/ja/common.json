@@ -48,7 +48,32 @@
     "now": "現在"
   },
   "routine": {
-    "deleteConfirm": "このルーティンを削除しますか？"
+    "deleteConfirm": "このルーティンを削除しますか？",
+    "markComplete": "完了にする",
+    "markIncomplete": "未完了にする",
+    "delete": "ルーティンを削除",
+    "addMorning": "午前ルーティンを追加",
+    "addAfternoon": "午後ルーティンを追加"
+  },
+  "recipes": {
+    "title": "Flow レシピ",
+    "desc": "ワークフローを再利用できるテンプレートとして保存します（ローカル保存）。",
+    "empty": "まだレシピがありません。ワークフローを右クリックして保存してください。",
+    "save": "レシピとして保存",
+    "saved": "レシピに保存しました",
+    "use": "使用",
+    "used": "レシピをワークフローとして追加しました",
+    "delete": "削除",
+    "deleteConfirm": "このレシピを削除しますか？",
+    "steps": "ステップ"
+  },
+  "history": {
+    "title": "履歴",
+    "desc": "Victory Wall / パターン分析に使われます（ローカル保存）。",
+    "events": "イベント",
+    "clear": "削除",
+    "cleared": "履歴を削除しました。",
+    "clearConfirm": "すべての履歴イベントを削除しますか？"
   },
   "settings": {
     "title": "設定とデータ",
@@ -96,6 +121,7 @@
     "tabRecommend": "今何する?",
     "tabQuick": "クイック",
     "tabSummary": "まとめ",
+    "tabChaos": "カオスダンプ",
     "setupTitle": "次は何する?",
     "setupDesc": "AIを接続してパーソナライズされたタスク推薦を受け取りましょう",
     "setupButton": "AIを設定",
@@ -117,6 +143,36 @@
     "chatToggle": "AIコマンド",
     "chatPlaceholder": "例：「9時に運動をルーティンに追加して」"
   },
+  "chaos": {
+    "title": "カオス受信箱",
+    "desc": "構造化されていないダンプをここに保存して、入力を失わないようにします（ローカル保存）。",
+    "empty": "まだありません。カオスダンプタブから保存してください。",
+    "count": "件数",
+    "noInput": "まず内容を書いてください。",
+    "placeholder": "ここに全部書き出して。安全に整理します。",
+    "aiHint": "いつでも保存できます。AIを接続すると自動で整理します。",
+    "save": "受信箱に保存",
+    "saved": "カオス受信箱に保存しました。",
+    "saveUnavailable": "今は保存できません。",
+    "organize": "AIで整理",
+    "preview": "プレビュー",
+    "apply": "適用",
+    "applied": "ワークフローに適用しました。",
+    "applyUnavailable": "今は適用できません。",
+    "nothingToApply": "適用するものがありません。",
+    "emptyResult": "実行可能な項目が見つかりませんでした。テキストは受信箱に残します。",
+    "alreadyExists": "すでに同じ項目があるようです。",
+    "workflows": "ワークフロー",
+    "routines": "ルーティン",
+    "notes": "メモ",
+    "copy": "コピー",
+    "copied": "コピーしました。",
+    "delete": "削除",
+    "deleteConfirm": "このダンプを削除しますか？",
+    "clear": "消去",
+    "cleared": "カオス受信箱を消去しました。",
+    "clearConfirm": "受信箱のアイテムをすべて消去しますか？"
+  },
   "auth": {
     "signIn": "サインイン",
     "subtitle": "デバイス間で同期するにはサインインしてください",
@@ -126,5 +182,43 @@
     "guest": "ゲストとして続行",
     "notConfigured": "クラウド同期が設定されていません。ローカルストレージを使用しています。",
     "signOut": "サインアウト"
+  },
+  "victory": {
+    "title": "Victory Wall",
+    "subtitle": "小さな勝利も大切です。",
+    "tried": "挑戦",
+    "done": "完了",
+    "left": "残り",
+    "noShameTitle": "後悔しない夜",
+    "gentleTitle": "今日のまとめ",
+    "noShameBody": "今日ここまで来たこと自体が大事です。",
+    "gentleBody": "大丈夫。次の小さな一歩だけ選びましょう。",
+    "tomorrowStartWith": "明日はまず",
+    "tomorrowJustOne": "明日は小さな一歩だけで十分です。",
+  "insightTitle": "パターン",
+  "insightText": "勝ちが多い時間帯",
+  "insightNone": "データが増えるほどインサイトが良くなります。",
+  "coachTitle": "ルーティンパターンコーチ",
+  "coachCta": "AIインサイトを追加",
+  "coachConnect": "AIを接続",
+  "coachLoading": "分析中…",
+  "coachHint": "AIを接続するとルーティンのパターン分析が追加されます。ローカルのインサイトは引き続き利用できます。",
+  "coachError": "AI分析に失敗しました。ローカルのインサイトのみ表示します。",
+  "coachScore": "スコア",
+  "coachEmpty": "追加のインサイトはまだありません。",
+  "timeline": "タイムライン",
+  "timelineEmpty": "まだイベントがありません。小さな行動も勝利です。",
+  "event": {
+    "session": "アプリを開いた",
+    "routineCreated": "ルーティン作成",
+      "routineDone": "ルーティン完了",
+      "routineUndo": "ルーティンのチェック解除",
+      "pipelineCreated": "ワークフロー作成",
+      "stepCreated": "ステップ追加",
+      "stepDone": "ステップ完了",
+      "recipeSaved": "レシピに保存",
+      "aiUsed": "AIおすすめを使用",
+      "generic": "アクティビティ"
+    }
   }
 }

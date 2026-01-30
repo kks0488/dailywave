@@ -3,16 +3,30 @@ x-project-registry:
   name: dailywave
   port: 9008
   env: prod
-  updated_at: 2026-01-13T03:11:10Z
+  updated_at: 2026-01-30T03:20:50Z
 # project-registry:end
 
 services:
+  memu:
+    image: nevamindai/memu-server:latest
+    ports:
+      - "8100:8000"
+    volumes:
+      - memu_data:/app/data
+    restart: unless-stopped
+
   backend:
     build: ./backend
     ports:
       - "8020:8020"
     volumes:
       - ./backend/data:/app/data
+    env_file:
+      - ./backend/.env
+    environment:
+      - MEMU_URL=http://memu:8000
+    depends_on:
+      - memu
     restart: always
 
   frontend:
@@ -20,3 +34,6 @@ services:
     ports:
       - "3020:3020"
     restart: always
+
+volumes:
+  memu_data:

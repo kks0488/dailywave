@@ -37,7 +37,20 @@ Please be respectful and constructive in all interactions. We welcome contributo
 
 - Node.js 18+
 - Python 3.11+
-- Docker (optional)
+- Docker (optional, for memU)
+
+### Environment Variables
+
+```bash
+# Backend
+cp backend/.env.example backend/.env
+# Set GEMINI_API_KEY (required for AI features)
+# Set API_SECRET_KEY (optional, for API auth)
+
+# Frontend
+cp frontend/.env.example frontend/.env
+# VITE_API_URL defaults to http://localhost:8020
+```
 
 ### Local Development
 
@@ -45,15 +58,20 @@ Please be respectful and constructive in all interactions. We welcome contributo
 git clone https://github.com/YOUR_USERNAME/dailywave.git
 cd dailywave
 
-cd frontend
-npm install
-npm run dev
-
-cd ../backend
+# Backend
+cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8020
+
+# Frontend (new terminal)
+cd frontend
+npm install
+npm run dev
+
+# memU (optional, for AI personalization)
+docker run -d -p 8100:8000 nevamindai/memu-server:latest
 ```
 
 ## Code Style
