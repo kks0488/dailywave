@@ -4,6 +4,7 @@ import { useCommandStore } from '../store/useCommandStore';
 import { toast } from '../store/useToastStore';
 import { PipelineSkeleton, RoutineSkeleton } from './Skeleton';
 import { EmptyPipelines } from './EmptyState';
+import AuthModal from './AuthModal';
 const WhatsNext = lazy(() => import('./WhatsNext'));
 import { getApiKey, setApiKey, hasApiKey, enhanceWorkflow, analyzeRoutinePatterns } from '../lib/gemini';
 import { memoryTracker } from '../lib/memoryTracker';
@@ -31,7 +32,7 @@ const AppleCommandCenter = () => {
   const { t, i18n } = useTranslation();
   const backendUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || '';
   const apiSecretKey = import.meta.env.VITE_API_SECRET_KEY || '';
-  const { user, isGuest, initialize: initializeAuth } = useAuthStore();
+  const { user, isGuest, initialize: initializeAuth, signOut } = useAuthStore();
 
   // Data selectors - only re-render when these specific values change
   const pipelines = useCommandStore(s => s.pipelines);
@@ -56,6 +57,7 @@ const AppleCommandCenter = () => {
   const [editingStep, setEditingStep] = useState(null);
   const [aiApiKey, setAiApiKey] = useState(getApiKey());
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [routineCoachResult, setRoutineCoachResult] = useState(null);
   const [routineCoachLoading, setRoutineCoachLoading] = useState(false);
   const [routineCoachError, setRoutineCoachError] = useState('');
@@ -110,6 +112,10 @@ const AppleCommandCenter = () => {
     };
   }, [initializeAuth]);
 
+  useEffect(() => {
+    if (user && !isGuest) setIsAuthOpen(false);
+  }, [isGuest, user]);
+
   const sidebarDate = useMemo(() => {
     const now = new Date();
     const weekday = new Intl.DateTimeFormat(i18n.language || 'en', { weekday: 'short' }).format(now);
@@ -130,6 +136,33 @@ const AppleCommandCenter = () => {
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const handleSyncFromCloud = async () => {
+    if (!user || isGuest) {
+      setIsAuthOpen(true);
+      return;
+    }
+
+    try {
+      const sbData = await loadFromSupabase(user.id);
+      if (!sbData) {
+        toast.warning(t('settings.syncFailed', 'Could not load from cloud.'));
+        return;
+      }
+
+      const current = useCommandStore.getState();
+      hydrate({
+        pipelines: sbData.pipelines,
+        routines: sbData.routines,
+        sopLibrary: current.sopLibrary,
+        completionHistory: current.completionHistory,
+        chaosInbox: current.chaosInbox,
+      });
+      toast.success(t('settings.synced', 'Synced from cloud.'));
+    } catch {
+      toast.warning(t('settings.syncFailed', 'Could not load from cloud.'));
+    }
   };
 
   const runRoutineCoach = async () => {
@@ -1820,25 +1853,60 @@ const AppleCommandCenter = () => {
                      <button className="close-btn" onClick={() => setIsSettingsOpen(false)}><X size={20}/></button>
                  </div>
                  
-                 <div className="memo-section">
-                       <label>{t('settings.language')}</label>
-                       <select
-                          value={i18n.language}
-                          onChange={(e) => i18n.changeLanguage(e.target.value)}
-                          className="glass-input"
-                          style={{ width: '100%', marginTop: '8px' }}
-                      >
-                          <option value="en">English</option>
-                          <option value="ko">한국어</option>
-                          <option value="ja">日本語</option>
-                          <option value="zh">中文</option>
-                      </select>
-                  </div>
+	                  <div className="memo-section">
+	                        <label>{t('settings.language')}</label>
+	                        <select
+	                           value={i18n.language}
+	                           onChange={(e) => i18n.changeLanguage(e.target.value)}
+	                           className="glass-input"
+	                           style={{ width: '100%', marginTop: '8px' }}
+	                       >
+	                           <option value="en">English</option>
+	                           <option value="ko">한국어</option>
+	                           <option value="ja">日本語</option>
+	                           <option value="zh">中文</option>
+	                       </select>
+	                   </div>
 
-                  <div className="memo-section">
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Sparkles size={14} color="#ff9500" />
-                          {t('ai.apiKey')}
+	                  <div className="memo-section">
+	                      <label>{t('settings.account', 'Account')}</label>
+	                      {user && !isGuest ? (
+	                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+	                          <div className="settings-text-muted" style={{ marginTop: 0 }}>
+	                            {t('settings.signedInAs', 'Signed in as')}: {user.email || user.id}
+	                          </div>
+	                          <button
+	                            className="status-option pending settings-btn-secondary"
+	                            onClick={handleSyncFromCloud}
+	                          >
+	                            <RotateCcw size={16} /> {t('settings.syncNow', 'Sync now')}
+	                          </button>
+	                          <button
+	                            className="status-option locked settings-btn-secondary"
+	                            onClick={() => signOut?.()}
+	                          >
+	                            <X size={16} /> {t('auth.signOut', 'Sign Out')}
+	                          </button>
+	                        </div>
+	                      ) : (
+	                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+	                          <p className="settings-text-muted" style={{ marginTop: 0 }}>
+	                            {t('auth.subtitle', 'Sign in to sync across devices')}
+	                          </p>
+	                          <button
+	                            className="status-option pending settings-btn-secondary"
+	                            onClick={() => setIsAuthOpen(true)}
+	                          >
+	                            <Sparkles size={16} /> {t('auth.signIn', 'Sign In')}
+	                          </button>
+	                        </div>
+	                      )}
+	                  </div>
+	
+	                  <div className="memo-section">
+	                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+	                          <Sparkles size={14} color="#ff9500" />
+	                          {t('ai.apiKey')}
                       </label>
                       <input 
                           type="password"
@@ -2390,6 +2458,8 @@ const AppleCommandCenter = () => {
           </div>
         </div>
       )}
+
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
     </div>
   );

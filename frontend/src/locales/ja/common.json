@@ -78,6 +78,11 @@
   "settings": {
     "title": "設定とデータ",
     "language": "言語",
+    "account": "アカウント",
+    "signedInAs": "サインイン中",
+    "syncNow": "今すぐ同期",
+    "synced": "クラウドから同期しました。",
+    "syncFailed": "クラウドから読み込めませんでした。",
     "darkMode": "ダークモードに切替",
     "lightMode": "ライトモードに切替",
     "minimize": "最小化",
@@ -181,7 +186,10 @@
     "github": "GitHubで続行",
     "guest": "ゲストとして続行",
     "notConfigured": "クラウド同期が設定されていません。ローカルストレージを使用しています。",
-    "signOut": "サインアウト"
+    "signOut": "サインアウト",
+    "callbackWorking": "サインインを完了しています…",
+    "callbackDone": "サインイン完了。リダイレクト中…",
+    "callbackError": "サインインに失敗しました"
   },
   "victory": {
     "title": "Victory Wall",

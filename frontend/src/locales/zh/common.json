@@ -78,6 +78,11 @@
   "settings": {
     "title": "设置与数据",
     "language": "语言",
+    "account": "账号",
+    "signedInAs": "当前登录",
+    "syncNow": "立即同步",
+    "synced": "已从云端同步。",
+    "syncFailed": "无法从云端加载。",
     "darkMode": "切换到深色模式",
     "lightMode": "切换到浅色模式",
     "minimize": "最小化",
@@ -181,7 +186,10 @@
     "github": "使用GitHub继续",
     "guest": "以访客身份继续",
     "notConfigured": "云同步未配置。使用本地存储。",
-    "signOut": "退出登录"
+    "signOut": "退出登录",
+    "callbackWorking": "正在完成登录…",
+    "callbackDone": "登录成功，正在跳转…",
+    "callbackError": "登录失败"
   },
   "victory": {
     "title": "胜利墙",

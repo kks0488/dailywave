@@ -116,6 +116,11 @@
   "settings": {
     "title": "Settings & Data",
     "language": "Language",
+    "account": "Account",
+    "signedInAs": "Signed in as",
+    "syncNow": "Sync now",
+    "synced": "Synced from cloud.",
+    "syncFailed": "Could not load from cloud.",
     "darkMode": "Switch to Dark Mode",
     "lightMode": "Switch to Light Mode",
     "minimize": "Minimize",
@@ -221,6 +226,9 @@
     "github": "Continue with GitHub",
     "guest": "Continue as Guest",
     "notConfigured": "Cloud sync is not configured. Using local storage.",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "callbackWorking": "Completing sign-in...",
+    "callbackDone": "Signed in. Redirecting...",
+    "callbackError": "Sign-in failed"
   }
 }

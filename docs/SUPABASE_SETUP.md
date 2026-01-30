@@ -2,6 +2,10 @@
 
 This guide walks you through setting up Supabase for DailyWave.
 
+## Why Supabase Cloud?
+
+If you want **the same data on iPad / iPhone / web**, you should use **Supabase Cloud** (hosted). Each device signs in with the same account and DailyWave syncs your pipelines/routines to Postgres with RLS enabled.
+
 ## 1. Create Supabase Project
 
 1. Go to [supabase.com](https://supabase.com)
@@ -34,9 +38,9 @@ This guide walks you through setting up Supabase for DailyWave.
 
 1. Go to **Authentication** → **URL Configuration**
 2. Set:
-   - **Site URL**: `https://your-domain.vercel.app`
+   - **Site URL**: `https://dailywave.vercel.app` (or your custom domain)
    - **Redirect URLs**: Add:
-     - `https://your-domain.vercel.app/auth/callback`
+     - `https://dailywave.vercel.app/auth/callback` (or your custom domain)
      - `http://localhost:3005/auth/callback` (for development)
 
 ## 4. Get API Keys
@@ -56,6 +60,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGc...
 
 ### Vercel Environment Variables
 Add the same variables in Vercel project settings.
+
+> Tip: After changing Vercel env vars, trigger a redeploy so the client bundle picks up the new values.
 
 ## 6. Install Supabase Client
 
@@ -129,3 +135,4 @@ DailyWave는 3-tier 데이터 persistence를 사용합니다:
 - `frontend/src/lib/supabase.js` - Supabase 클라이언트 초기화
 - `frontend/src/lib/supabaseSync.js` - `loadFromSupabase()`, `saveToSupabase()`
 - `frontend/src/store/useAuthStore.js` - 인증 상태 관리
+- `frontend/src/components/AuthCallback.jsx` - OAuth callback 처리 (`/auth/callback`)

@@ -23,6 +23,26 @@ async function getWorkspaceId(userId) {
   return data?.id || null;
 }
 
+async function ensureWorkspaceId(userId) {
+  if (!isSupabaseConfigured() || !supabase || !userId) return null;
+
+  const existingId = await getWorkspaceId(userId);
+  if (existingId) return existingId;
+
+  try {
+    const { data, error } = await supabase
+      .from('workspaces')
+      .insert({ user_id: userId, name: 'My Workspace' })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data?.id || null;
+  } catch {
+    // Race/trigger may have created it; try again.
+    return await getWorkspaceId(userId);
+  }
+}
+
 export async function loadFromSupabase(userId) {
   if (!isSupabaseConfigured() || !userId) return null;
 
@@ -79,7 +99,7 @@ export async function saveToSupabase(userId, { pipelines, routines }) {
   if (!isSupabaseConfigured() || !userId) return false;
 
   try {
-    const workspaceId = await getWorkspaceId(userId);
+    const workspaceId = await ensureWorkspaceId(userId);
     if (!workspaceId) return false;
 
     // Upsert pipelines
