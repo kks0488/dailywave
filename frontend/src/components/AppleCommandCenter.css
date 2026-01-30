@@ -770,8 +770,14 @@ button.checkbox-circle {
     display: flex; flex-direction: column;
     gap: 20px;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-bottom: 140px;
+
+    /* Hide scrollbar (keep scroll behavior) */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
+.acc-grid::-webkit-scrollbar { width: 0; background: transparent; }
 
 /* Hidden on desktop, shown on mobile */
 .mobile-add-workflow-btn {
