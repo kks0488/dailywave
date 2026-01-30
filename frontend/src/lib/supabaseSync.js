@@ -14,6 +14,7 @@ const getLocalDateKey = (date = new Date()) => {
 };
 
 async function getWorkspaceId(userId) {
+  if (!isSupabaseConfigured()) return null;
   const { data } = await supabase
     .from('workspaces')
     .select('id')
