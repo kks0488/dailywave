@@ -235,7 +235,7 @@ describe('useCommandStore', () => {
       hydrate(mockData);
 
       const state = useCommandStore.getState();
-      expect(state.pipelines).toEqual(mockData.pipelines);
+      expect(state.pipelines).toMatchObject(mockData.pipelines);
       expect(state.routines).toEqual([{ ...mockData.routines[0], doneDate: null }]);
       expect(state.sopLibrary).toEqual(mockData.sopLibrary);
       expect(state.completionHistory).toEqual(mockData.completionHistory);

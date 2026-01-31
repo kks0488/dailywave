@@ -77,14 +77,23 @@ export async function loadFromSupabase(userId) {
       subtitle: p.subtitle || '',
       color: p.color || 'blue',
       iconType: p.icon_type || 'briefcase',
-      steps: (p.steps || [])
-        .sort((a, b) => a.position - b.position)
-        .map(s => ({
+      steps: (() => {
+        const raw = (p.steps || []).slice().sort((a, b) => a.position - b.position);
+        const mapped = raw.map(s => ({
           id: s.id,
           title: s.title,
           description: s.description || '',
           status: s.status || 'pending',
-        })),
+        }));
+
+        // Auto-heal: older data may have pipelines saved without steps (UUID mismatch).
+        if (mapped.length > 0) return mapped;
+
+        return [
+          { id: crypto.randomUUID(), title: 'Start', description: '', status: 'pending' },
+          { id: crypto.randomUUID(), title: 'Finish', description: '', status: 'locked' },
+        ];
+      })(),
     }));
 
     const todayKey = getLocalDateKey();

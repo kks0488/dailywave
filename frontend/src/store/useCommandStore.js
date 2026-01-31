@@ -18,6 +18,14 @@ const getLocalDateKey = (date = new Date()) => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const ensureUuid = (value) => {
+  if (typeof value === 'string' && UUID_RE.test(value)) return value;
+  return crypto.randomUUID();
+};
+
 const pruneCompletionHistory = (events) => {
   if (!Array.isArray(events) || events.length === 0) return [];
 
@@ -146,14 +154,14 @@ export const useCommandStore = create(
         const pipelineId = options.id || crypto.randomUUID();
         const steps = Array.isArray(options.steps) && options.steps.length > 0
           ? options.steps.map((step, index) => ({
-              id: step.id || `${pipelineId}-step-${index + 1}`,
+              id: ensureUuid(step?.id),
               title: step.title || step.name || `Step ${index + 1}`,
               description: step.description || step.memo || '',
               status: step.status || 'pending'
             }))
           : [
-              { id: `${pipelineId}-s1`, title: 'Start', status: 'pending' },
-              { id: `${pipelineId}-s2`, title: 'Finish', status: 'locked' }
+              { id: crypto.randomUUID(), title: 'Start', status: 'pending' },
+              { id: crypto.randomUUID(), title: 'Finish', status: 'locked' }
             ];
 
         set((state) => {
@@ -399,7 +407,30 @@ export const useCommandStore = create(
 
       // --- PERSISTENCE ACTIONS ---
       hydrate: (data) => set(() => ({
-          pipelines: data.pipelines || [],
+          pipelines: (data.pipelines || []).map((pipeline) => {
+            const base = typeof pipeline === 'object' && pipeline !== null ? pipeline : {};
+            const rawSteps = Array.isArray(base.steps) ? base.steps : [];
+            const steps = rawSteps.map((step) => {
+              const s = typeof step === 'object' && step !== null ? step : {};
+              return {
+                ...s,
+                id: ensureUuid(s.id),
+                title: typeof s.title === 'string' ? s.title : '',
+                description: typeof s.description === 'string' ? s.description : '',
+                status: typeof s.status === 'string' ? s.status : 'pending',
+              };
+            });
+
+            return {
+              ...base,
+              id: typeof base.id === 'string' ? base.id : crypto.randomUUID(),
+              title: typeof base.title === 'string' ? base.title : '',
+              subtitle: typeof base.subtitle === 'string' ? base.subtitle : '',
+              color: typeof base.color === 'string' ? base.color : 'blue',
+              iconType: typeof base.iconType === 'string' ? base.iconType : 'briefcase',
+              steps,
+            };
+          }),
           routines: (data.routines || []).map((routine) => ({
             ...routine,
             done: !!routine?.done,
