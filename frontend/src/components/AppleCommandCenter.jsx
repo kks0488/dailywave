@@ -61,6 +61,11 @@ const AppleCommandCenter = () => {
   const [routineCoachResult, setRoutineCoachResult] = useState(null);
   const [routineCoachLoading, setRoutineCoachLoading] = useState(false);
   const [routineCoachError, setRoutineCoachError] = useState('');
+  const lastSupabaseSignatureRef = React.useRef('');
+  const lastSupabaseSavedAtRef = React.useRef(0);
+  const pendingSupabasePayloadRef = React.useRef(null);
+  const pendingSupabaseSignatureRef = React.useRef('');
+  const supabaseTimeoutIdRef = React.useRef(null);
   const [anonUserId] = useState(() => {
     const key = 'dailywave_anon_user_id';
     const existing = localStorage.getItem(key);
@@ -159,6 +164,15 @@ const AppleCommandCenter = () => {
         completionHistory: current.completionHistory,
         chaosInbox: current.chaosInbox,
       });
+      // Prevent "load → immediate save" echo to Supabase autosave
+      lastSupabaseSignatureRef.current = JSON.stringify({
+        pipelines: sbData.pipelines,
+        routines: sbData.routines,
+      });
+      lastSupabaseSavedAtRef.current = Date.now();
+      pendingSupabasePayloadRef.current = null;
+      pendingSupabaseSignatureRef.current = '';
+      clearTimeout(supabaseTimeoutIdRef.current);
       toast.success(t('settings.synced', 'Synced from cloud.'));
     } catch {
       toast.warning(t('settings.syncFailed', 'Could not load from cloud.'));
@@ -246,6 +260,15 @@ const AppleCommandCenter = () => {
         if (sbData && (sbData.pipelines.length > 0 || sbData.routines.length > 0)) {
           hydrate(normalizeState({ ...sbData, sopLibrary: undefined, completionHistory: undefined }, aux));
           logger.log("Loaded state from Supabase.");
+          // Prevent "load → immediate save" echo to Supabase autosave
+          lastSupabaseSignatureRef.current = JSON.stringify({
+            pipelines: sbData.pipelines,
+            routines: sbData.routines,
+          });
+          lastSupabaseSavedAtRef.current = Date.now();
+          pendingSupabasePayloadRef.current = null;
+          pendingSupabaseSignatureRef.current = '';
+          clearTimeout(supabaseTimeoutIdRef.current);
           localStorage.setItem(lastOpenedStorageKey, todayKey);
           setIsLoading(false);
           return;
@@ -291,40 +314,35 @@ const AppleCommandCenter = () => {
 
     // 2. Auto-Save Subscription
     let timeoutId;
-    let supabaseTimeoutId;
-    let pendingSupabasePayload = null;
-    let pendingSupabaseSignature = '';
-    let lastSupabaseSignature = '';
-    let lastSupabaseSavedAt = 0;
 
     const flushSupabase = () => {
       if (!user || isGuest) return;
-      if (!pendingSupabasePayload) return;
+      if (!pendingSupabasePayloadRef.current) return;
 
-      const payload = pendingSupabasePayload;
-      const signature = pendingSupabaseSignature;
-      pendingSupabasePayload = null;
-      pendingSupabaseSignature = '';
-      lastSupabaseSavedAt = Date.now();
-      lastSupabaseSignature = signature;
+      const payload = pendingSupabasePayloadRef.current;
+      const signature = pendingSupabaseSignatureRef.current;
+      pendingSupabasePayloadRef.current = null;
+      pendingSupabaseSignatureRef.current = '';
+      lastSupabaseSavedAtRef.current = Date.now();
+      lastSupabaseSignatureRef.current = signature;
 
       saveToSupabase(user.id, payload).catch(() => {});
     };
 
     const scheduleSupabaseSave = (payload, signature) => {
-      pendingSupabasePayload = payload;
-      pendingSupabaseSignature = signature;
+      pendingSupabasePayloadRef.current = payload;
+      pendingSupabaseSignatureRef.current = signature;
 
       const now = Date.now();
       const minIntervalMs = 5000;
-      const waitMs = Math.max(0, minIntervalMs - (now - lastSupabaseSavedAt));
+      const waitMs = Math.max(0, minIntervalMs - (now - lastSupabaseSavedAtRef.current));
 
-      clearTimeout(supabaseTimeoutId);
+      clearTimeout(supabaseTimeoutIdRef.current);
       if (waitMs === 0) {
         flushSupabase();
         return;
       }
-      supabaseTimeoutId = setTimeout(flushSupabase, waitMs);
+      supabaseTimeoutIdRef.current = setTimeout(flushSupabase, waitMs);
     };
 
     const save = (state) => {
@@ -344,13 +362,13 @@ const AppleCommandCenter = () => {
             routines: state.routines,
           };
           const signature = JSON.stringify(supabasePayload);
-          if (signature !== lastSupabaseSignature) {
+          if (signature !== lastSupabaseSignatureRef.current) {
             scheduleSupabaseSave(supabasePayload, signature);
           }
         } else {
-          clearTimeout(supabaseTimeoutId);
-          pendingSupabasePayload = null;
-          pendingSupabaseSignature = '';
+          clearTimeout(supabaseTimeoutIdRef.current);
+          pendingSupabasePayloadRef.current = null;
+          pendingSupabaseSignatureRef.current = '';
         }
 
         if (backendUrl) {
@@ -373,7 +391,7 @@ const AppleCommandCenter = () => {
     return () => {
         unsubscribe();
         clearTimeout(timeoutId);
-        clearTimeout(supabaseTimeoutId);
+        clearTimeout(supabaseTimeoutIdRef.current);
     };
   }, [apiSecretKey, backendUrl, hydrate, todayKey, user, isGuest]);
 

@@ -14,6 +14,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Cloud sync now reconciles deletions (prevents removed pipelines/steps/routines from reappearing)
 - Workspace lookup is resilient even if multiple workspaces exist (picks earliest)
 
+## [1.3.2] - 2026-01-31
+
+### Fixed
+- Prevent “cloud load → immediate save” echo to Supabase (reduces noisy writes)
+
+### Added
+- Frontend unit test for Supabase sync deletion reconciliation (`supabaseSync.test.js`)
+
 ## [1.2.0] - 2026-01-29
 
 ### Added
