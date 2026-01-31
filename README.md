@@ -44,6 +44,8 @@ Deployment status: Live on Vercel (https://dailywave.vercel.app/)
 - **Supabase cloud sync** for logged-in users (guest mode also supported)
 - **Auto-save** so progress never disappears
 
+> Auth providers: The UI is **Google-only by default**. You can enable Apple/GitHub in the login modal via `VITE_AUTH_PROVIDERS`.
+
 ## How it works
 
 1. Create nodes for tasks or routines.

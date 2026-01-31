@@ -34,6 +34,9 @@ If you want **the same data on iPad / iPhone / web**, you should use **Supabase 
    - **Apple**: Add Service ID and other credentials from Apple Developer
    - **GitHub**: Add Client ID and Secret from GitHub OAuth Apps
 
+> DailyWave UI defaults to **Google-only** for production simplicity. To show additional providers in the login modal, set:
+> `VITE_AUTH_PROVIDERS=google,apple,github`
+
 ### Configure URLs
 
 1. Go to **Authentication** → **URL Configuration**
