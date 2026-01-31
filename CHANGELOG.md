@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.1] - 2026-01-31
+
+### Changed
+- Supabase autosave now syncs **pipelines/routines only** (other data stays local-first)
+- Supabase writes are throttled (min 5s interval) to reduce request volume
+
+### Fixed
+- Cloud sync now reconciles deletions (prevents removed pipelines/steps/routines from reappearing)
+- Workspace lookup is resilient even if multiple workspaces exist (picks earliest)
+
 ## [1.2.0] - 2026-01-29
 
 ### Added

@@ -291,6 +291,42 @@ const AppleCommandCenter = () => {
 
     // 2. Auto-Save Subscription
     let timeoutId;
+    let supabaseTimeoutId;
+    let pendingSupabasePayload = null;
+    let pendingSupabaseSignature = '';
+    let lastSupabaseSignature = '';
+    let lastSupabaseSavedAt = 0;
+
+    const flushSupabase = () => {
+      if (!user || isGuest) return;
+      if (!pendingSupabasePayload) return;
+
+      const payload = pendingSupabasePayload;
+      const signature = pendingSupabaseSignature;
+      pendingSupabasePayload = null;
+      pendingSupabaseSignature = '';
+      lastSupabaseSavedAt = Date.now();
+      lastSupabaseSignature = signature;
+
+      saveToSupabase(user.id, payload).catch(() => {});
+    };
+
+    const scheduleSupabaseSave = (payload, signature) => {
+      pendingSupabasePayload = payload;
+      pendingSupabaseSignature = signature;
+
+      const now = Date.now();
+      const minIntervalMs = 5000;
+      const waitMs = Math.max(0, minIntervalMs - (now - lastSupabaseSavedAt));
+
+      clearTimeout(supabaseTimeoutId);
+      if (waitMs === 0) {
+        flushSupabase();
+        return;
+      }
+      supabaseTimeoutId = setTimeout(flushSupabase, waitMs);
+    };
+
     const save = (state) => {
         const payload = {
             pipelines: state.pipelines,
@@ -303,7 +339,18 @@ const AppleCommandCenter = () => {
 
         // Save to Supabase for logged-in users
         if (user && !isGuest) {
-          saveToSupabase(user.id, payload).catch(() => {});
+          const supabasePayload = {
+            pipelines: state.pipelines,
+            routines: state.routines,
+          };
+          const signature = JSON.stringify(supabasePayload);
+          if (signature !== lastSupabaseSignature) {
+            scheduleSupabaseSave(supabasePayload, signature);
+          }
+        } else {
+          clearTimeout(supabaseTimeoutId);
+          pendingSupabasePayload = null;
+          pendingSupabaseSignature = '';
         }
 
         if (backendUrl) {
@@ -326,6 +373,7 @@ const AppleCommandCenter = () => {
     return () => {
         unsubscribe();
         clearTimeout(timeoutId);
+        clearTimeout(supabaseTimeoutId);
     };
   }, [apiSecretKey, backendUrl, hydrate, todayKey, user, isGuest]);
 

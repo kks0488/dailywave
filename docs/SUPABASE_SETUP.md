@@ -134,6 +134,11 @@ DailyWave는 3-tier 데이터 persistence를 사용합니다:
 로그인한 사용자는 자동으로 Supabase에서 데이터를 로드/저장합니다.
 로그아웃 상태에서는 Backend JSON → localStorage 순서로 폴백합니다.
 
+### Notes (production hardening)
+- Supabase에는 **pipelines/routines만** 동기화합니다. (Chaos Inbox, SOP, history는 local-first)
+- 자동 저장은 Supabase에 과도한 요청을 보내지 않도록 **최소 5초 간격으로 throttling** 됩니다.
+- 삭제도 동기화되어, 로컬에서 지운 pipeline/step/routine이 클라우드에서 다시 “부활”하지 않습니다.
+
 ### 관련 파일
 - `frontend/src/lib/supabase.js` - Supabase 클라이언트 초기화
 - `frontend/src/lib/supabaseSync.js` - `loadFromSupabase()`, `saveToSupabase()`

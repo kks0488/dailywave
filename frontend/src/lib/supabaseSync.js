@@ -15,12 +15,15 @@ const getLocalDateKey = (date = new Date()) => {
 
 async function getWorkspaceId(userId) {
   if (!isSupabaseConfigured()) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('workspaces')
     .select('id')
     .eq('user_id', userId)
-    .single();
-  return data?.id || null;
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  if (error) return null;
+  return Array.isArray(data) && data.length > 0 ? data[0]?.id || null : null;
 }
 
 async function ensureWorkspaceId(userId) {
@@ -42,6 +45,12 @@ async function ensureWorkspaceId(userId) {
     return await getWorkspaceId(userId);
   }
 }
+
+const chunk = (arr, size) => {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
 
 export async function loadFromSupabase(userId) {
   if (!isSupabaseConfigured() || !userId) return null;
@@ -102,43 +111,39 @@ export async function saveToSupabase(userId, { pipelines, routines }) {
     const workspaceId = await ensureWorkspaceId(userId);
     if (!workspaceId) return false;
 
-    // Upsert pipelines
-    for (let i = 0; i < pipelines.length; i++) {
-      const p = pipelines[i];
-      const { data: pipeline } = await supabase
-        .from('pipelines')
-        .upsert({
-          id: p.id,
-          workspace_id: workspaceId,
-          title: p.title,
-          subtitle: p.subtitle || '',
-          color: p.color || 'blue',
-          icon_type: p.iconType || 'briefcase',
-          position: i,
-        }, { onConflict: 'id' })
-        .select('id')
-        .single();
+    const pipelineList = Array.isArray(pipelines) ? pipelines : [];
+    const routineList = Array.isArray(routines) ? routines : [];
 
-      if (pipeline && p.steps) {
-        for (let j = 0; j < p.steps.length; j++) {
-          const s = p.steps[j];
-          await supabase.from('steps').upsert({
-            id: s.id,
-            pipeline_id: pipeline.id,
-            title: s.title,
-            description: s.description || '',
-            status: s.status || 'pending',
-            position: j,
-          }, { onConflict: 'id' });
-        }
+    const pipelineRows = pipelineList.map((p, i) => ({
+      id: p.id,
+      workspace_id: workspaceId,
+      title: p.title,
+      subtitle: p.subtitle || '',
+      color: p.color || 'blue',
+      icon_type: p.iconType || 'briefcase',
+      position: i,
+    }));
+
+    const stepRows = [];
+    for (const p of pipelineList) {
+      const steps = Array.isArray(p.steps) ? p.steps : [];
+      for (let j = 0; j < steps.length; j++) {
+        const s = steps[j];
+        stepRows.push({
+          id: s.id,
+          pipeline_id: p.id,
+          title: s.title,
+          description: s.description || '',
+          status: s.status || 'pending',
+          position: j,
+        });
       }
     }
 
-    // Upsert routines
     const todayKey = getLocalDateKey();
-    for (const r of routines) {
+    const routineRows = routineList.map((r) => {
       const doneDate = r.doneDate || (r.done ? todayKey : null);
-      await supabase.from('routines').upsert({
+      return {
         id: r.id,
         workspace_id: workspaceId,
         title: r.title,
@@ -146,7 +151,83 @@ export async function saveToSupabase(userId, { pipelines, routines }) {
         type: r.type || 'morning',
         is_done: r.done || false,
         done_date: doneDate,
-      }, { onConflict: 'id' });
+      };
+    });
+
+    // Upsert in bulk (reduces requests + avoids partial writes)
+    if (pipelineRows.length > 0) {
+      const { error } = await supabase
+        .from('pipelines')
+        .upsert(pipelineRows, { onConflict: 'id' });
+      if (error) throw error;
+    }
+
+    if (stepRows.length > 0) {
+      const { error } = await supabase
+        .from('steps')
+        .upsert(stepRows, { onConflict: 'id' });
+      if (error) throw error;
+    }
+
+    if (routineRows.length > 0) {
+      const { error } = await supabase
+        .from('routines')
+        .upsert(routineRows, { onConflict: 'id' });
+      if (error) throw error;
+    }
+
+    // Reconcile deletions: cloud should not resurrect deleted local items.
+    const localPipelineIds = pipelineList.map(p => p.id).filter(Boolean);
+    const localPipelineIdSet = new Set(localPipelineIds);
+    const localRoutineIds = routineList.map(r => r.id).filter(Boolean);
+    const localRoutineIdSet = new Set(localRoutineIds);
+    const localStepIdSet = new Set(stepRows.map(s => s.id).filter(Boolean));
+
+    const remotePipelinesRes = await supabase
+      .from('pipelines')
+      .select('id')
+      .eq('workspace_id', workspaceId);
+    if (remotePipelinesRes.error) throw remotePipelinesRes.error;
+
+    const stalePipelineIds = (remotePipelinesRes.data || [])
+      .map(p => p.id)
+      .filter(id => id && !localPipelineIdSet.has(id));
+
+    for (const batch of chunk(stalePipelineIds, 100)) {
+      const { error } = await supabase.from('pipelines').delete().in('id', batch);
+      if (error) throw error;
+    }
+
+    const remoteRoutinesRes = await supabase
+      .from('routines')
+      .select('id')
+      .eq('workspace_id', workspaceId);
+    if (remoteRoutinesRes.error) throw remoteRoutinesRes.error;
+
+    const staleRoutineIds = (remoteRoutinesRes.data || [])
+      .map(r => r.id)
+      .filter(id => id && !localRoutineIdSet.has(id));
+
+    for (const batch of chunk(staleRoutineIds, 100)) {
+      const { error } = await supabase.from('routines').delete().in('id', batch);
+      if (error) throw error;
+    }
+
+    if (localPipelineIds.length > 0) {
+      const remoteStepsRes = await supabase
+        .from('steps')
+        .select('id,pipeline_id')
+        .in('pipeline_id', localPipelineIds);
+      if (remoteStepsRes.error) throw remoteStepsRes.error;
+
+      const staleStepIds = (remoteStepsRes.data || [])
+        .map(s => s.id)
+        .filter(id => id && !localStepIdSet.has(id));
+
+      for (const batch of chunk(staleStepIds, 100)) {
+        const { error } = await supabase.from('steps').delete().in('id', batch);
+        if (error) throw error;
+      }
     }
 
     return true;
