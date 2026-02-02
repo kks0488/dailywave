@@ -62,7 +62,7 @@ const AppleCommandCenter = () => {
   const [routineCoachLoading, setRoutineCoachLoading] = useState(false);
   const [routineCoachError, setRoutineCoachError] = useState('');
   const [cloudSyncStatus, setCloudSyncStatus] = useState(() => ({
-    state: 'idle', // 'idle' | 'saving' | 'error'
+    state: 'idle', // 'idle' | 'saving' | 'loading' | 'error'
     lastSavedAt: null,
     lastError: '',
   }));
@@ -156,33 +156,49 @@ const AppleCommandCenter = () => {
     }
 
     try {
-      const sbData = await loadFromSupabase(user.id);
-      if (!sbData) {
-        toast.warning(t('settings.syncFailed', 'Could not load from cloud.'));
+      setCloudSyncStatus((prev) => ({ ...prev, state: 'loading', lastError: '' }));
+      const res = await loadFromSupabase(user.id, { returnError: true });
+      if (!res?.data) {
+        const message =
+          res?.error?.code === 'not_configured'
+            ? t('auth.notConfigured', 'Cloud sync is not configured. Using local storage.')
+            : res?.error?.message
+              ? `${t('settings.syncFailed', 'Could not load from cloud.')} (${res.error.message})`
+              : t('settings.syncFailed', 'Could not load from cloud.');
+
+        setCloudSyncStatus((prev) => ({
+          ...prev,
+          state: 'error',
+          lastError: message,
+        }));
+        toast.warning(message);
         return;
       }
 
       const current = useCommandStore.getState();
       hydrate({
-        pipelines: sbData.pipelines,
-        routines: sbData.routines,
+        pipelines: res.data.pipelines,
+        routines: res.data.routines,
         sopLibrary: current.sopLibrary,
         completionHistory: current.completionHistory,
         chaosInbox: current.chaosInbox,
       });
       // Prevent "load → immediate save" echo to Supabase autosave
       lastSupabaseSignatureRef.current = JSON.stringify({
-        pipelines: sbData.pipelines,
-        routines: sbData.routines,
+        pipelines: res.data.pipelines,
+        routines: res.data.routines,
       });
       lastSupabaseSavedAtRef.current = Date.now();
       pendingSupabasePayloadRef.current = null;
       pendingSupabaseSignatureRef.current = '';
       clearTimeout(supabaseTimeoutIdRef.current);
       supabaseInFlightRef.current = false;
+      setCloudSyncStatus((prev) => ({ ...prev, state: 'idle', lastError: '' }));
       toast.success(t('settings.synced', 'Synced from cloud.'));
     } catch {
-      toast.warning(t('settings.syncFailed', 'Could not load from cloud.'));
+      const message = t('settings.syncFailed', 'Could not load from cloud.');
+      setCloudSyncStatus((prev) => ({ ...prev, state: 'error', lastError: message }));
+      toast.warning(message);
     }
   };
 
@@ -2004,6 +2020,8 @@ const AppleCommandCenter = () => {
 	                          <div className="settings-text-muted" style={{ marginTop: 0 }}>
 	                            {cloudSyncStatus.state === 'saving'
 	                              ? 'Cloud: saving…'
+	                              : cloudSyncStatus.state === 'loading'
+	                                ? 'Cloud: syncing…'
 	                              : cloudSyncStatus.state === 'error'
 	                                ? `Cloud: ${cloudSyncStatus.lastError || 'Save failed.'}`
 	                                : cloudSyncStatus.lastSavedAt
@@ -2013,6 +2031,7 @@ const AppleCommandCenter = () => {
 	                          <button
 	                            className="status-option pending settings-btn-secondary"
 	                            onClick={handleSyncFromCloud}
+	                            disabled={cloudSyncStatus.state === 'loading' || cloudSyncStatus.state === 'saving'}
 	                          >
 	                            <RotateCcw size={16} /> {t('settings.syncNow', 'Sync now')}
 	                          </button>

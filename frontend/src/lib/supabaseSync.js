@@ -52,12 +52,22 @@ const chunk = (arr, size) => {
   return out;
 };
 
-export async function loadFromSupabase(userId) {
-  if (!isSupabaseConfigured() || !userId) return null;
+export async function loadFromSupabase(userId, options = {}) {
+  const returnError = !!options?.returnError;
+
+  if (!isSupabaseConfigured() || !userId) {
+    return returnError
+      ? { data: null, error: { code: 'not_configured', message: 'Supabase is not configured.' } }
+      : null;
+  }
 
   try {
     const workspaceId = await getWorkspaceId(userId);
-    if (!workspaceId) return null;
+    if (!workspaceId) {
+      return returnError
+        ? { data: null, error: { code: 'no_workspace', message: 'Workspace not found.' } }
+        : null;
+    }
 
     const [pipelinesRes, routinesRes] = await Promise.all([
       supabase
@@ -70,6 +80,17 @@ export async function loadFromSupabase(userId) {
         .select('*')
         .eq('workspace_id', workspaceId),
     ]);
+
+    const queryError = pipelinesRes?.error || routinesRes?.error;
+    if (queryError) {
+      console.error('Supabase load error:', queryError);
+      return returnError
+        ? {
+            data: null,
+            error: { code: queryError.code || 'load_failed', message: queryError.message || 'Load failed.' },
+          }
+        : null;
+    }
 
     const pipelines = (pipelinesRes.data || []).map(p => ({
       id: p.id,
@@ -106,10 +127,13 @@ export async function loadFromSupabase(userId) {
       done: r.done_date ? String(r.done_date).slice(0, 10) === todayKey : (r.is_done || false),
     }));
 
-    return { pipelines, routines };
+    const data = { pipelines, routines };
+    return returnError ? { data, error: null } : data;
   } catch (err) {
     console.error('Supabase load error:', err);
-    return null;
+    return returnError
+      ? { data: null, error: { code: 'load_failed', message: err?.message || 'Load failed.' } }
+      : null;
   }
 }
 
