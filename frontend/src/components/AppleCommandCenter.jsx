@@ -61,11 +61,17 @@ const AppleCommandCenter = () => {
   const [routineCoachResult, setRoutineCoachResult] = useState(null);
   const [routineCoachLoading, setRoutineCoachLoading] = useState(false);
   const [routineCoachError, setRoutineCoachError] = useState('');
+  const [cloudSyncStatus, setCloudSyncStatus] = useState(() => ({
+    state: 'idle', // 'idle' | 'saving' | 'error'
+    lastSavedAt: null,
+    lastError: '',
+  }));
   const lastSupabaseSignatureRef = React.useRef('');
   const lastSupabaseSavedAtRef = React.useRef(0);
   const pendingSupabasePayloadRef = React.useRef(null);
   const pendingSupabaseSignatureRef = React.useRef('');
   const supabaseTimeoutIdRef = React.useRef(null);
+  const supabaseInFlightRef = React.useRef(false);
   const [anonUserId] = useState(() => {
     const key = 'dailywave_anon_user_id';
     const existing = localStorage.getItem(key);
@@ -173,6 +179,7 @@ const AppleCommandCenter = () => {
       pendingSupabasePayloadRef.current = null;
       pendingSupabaseSignatureRef.current = '';
       clearTimeout(supabaseTimeoutIdRef.current);
+      supabaseInFlightRef.current = false;
       toast.success(t('settings.synced', 'Synced from cloud.'));
     } catch {
       toast.warning(t('settings.syncFailed', 'Could not load from cloud.'));
@@ -204,6 +211,8 @@ const AppleCommandCenter = () => {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     // 1. Load: Supabase (logged in) → Backend file → localStorage
     const loadData = async () => {
       const lastOpenedStorageKey = 'dailywave_last_opened_date';
@@ -269,6 +278,7 @@ const AppleCommandCenter = () => {
           pendingSupabasePayloadRef.current = null;
           pendingSupabaseSignatureRef.current = '';
           clearTimeout(supabaseTimeoutIdRef.current);
+          supabaseInFlightRef.current = false;
           localStorage.setItem(lastOpenedStorageKey, todayKey);
           setIsLoading(false);
           return;
@@ -315,18 +325,62 @@ const AppleCommandCenter = () => {
     // 2. Auto-Save Subscription
     let timeoutId;
 
-    const flushSupabase = () => {
+    const flushSupabase = async () => {
       if (!user || isGuest) return;
+      if (supabaseInFlightRef.current) return;
       if (!pendingSupabasePayloadRef.current) return;
 
       const payload = pendingSupabasePayloadRef.current;
       const signature = pendingSupabaseSignatureRef.current;
-      pendingSupabasePayloadRef.current = null;
-      pendingSupabaseSignatureRef.current = '';
-      lastSupabaseSavedAtRef.current = Date.now();
-      lastSupabaseSignatureRef.current = signature;
 
-      saveToSupabase(user.id, payload).catch(() => {});
+      supabaseInFlightRef.current = true;
+      setCloudSyncStatus((prev) => ({ ...prev, state: 'saving', lastError: '' }));
+
+      let ok = false;
+      try {
+        ok = await saveToSupabase(user.id, payload);
+      } catch (err) {
+        console.error('Supabase autosave error:', err);
+      }
+
+      supabaseInFlightRef.current = false;
+      if (cancelled) return;
+
+      if (ok) {
+        const now = Date.now();
+        lastSupabaseSavedAtRef.current = now;
+        lastSupabaseSignatureRef.current = signature;
+        setCloudSyncStatus({ state: 'idle', lastSavedAt: now, lastError: '' });
+
+        // Clear pending only if nothing newer was queued while saving.
+        if (pendingSupabaseSignatureRef.current === signature) {
+          pendingSupabasePayloadRef.current = null;
+          pendingSupabaseSignatureRef.current = '';
+        }
+
+        // If changes piled up during save, schedule the next one.
+        if (pendingSupabasePayloadRef.current && pendingSupabaseSignatureRef.current) {
+          scheduleSupabaseSave(
+            pendingSupabasePayloadRef.current,
+            pendingSupabaseSignatureRef.current
+          );
+        }
+
+        return;
+      }
+
+      // Failure: keep pending payload for retry, avoid tight loops.
+      lastSupabaseSavedAtRef.current = Date.now();
+      setCloudSyncStatus((prev) => ({
+        ...prev,
+        state: 'error',
+        lastError: 'Cloud save failed. Retrying…',
+      }));
+
+      clearTimeout(supabaseTimeoutIdRef.current);
+      supabaseTimeoutIdRef.current = setTimeout(() => {
+        flushSupabase().catch(() => {});
+      }, 15000);
     };
 
     const scheduleSupabaseSave = (payload, signature) => {
@@ -339,10 +393,12 @@ const AppleCommandCenter = () => {
 
       clearTimeout(supabaseTimeoutIdRef.current);
       if (waitMs === 0) {
-        flushSupabase();
+        flushSupabase().catch(() => {});
         return;
       }
-      supabaseTimeoutIdRef.current = setTimeout(flushSupabase, waitMs);
+      supabaseTimeoutIdRef.current = setTimeout(() => {
+        flushSupabase().catch(() => {});
+      }, waitMs);
     };
 
     const save = (state) => {
@@ -369,6 +425,8 @@ const AppleCommandCenter = () => {
           clearTimeout(supabaseTimeoutIdRef.current);
           pendingSupabasePayloadRef.current = null;
           pendingSupabaseSignatureRef.current = '';
+          supabaseInFlightRef.current = false;
+          setCloudSyncStatus({ state: 'idle', lastSavedAt: null, lastError: '' });
         }
 
         if (backendUrl) {
@@ -389,6 +447,7 @@ const AppleCommandCenter = () => {
     });
 
     return () => {
+        cancelled = true;
         unsubscribe();
         clearTimeout(timeoutId);
         clearTimeout(supabaseTimeoutIdRef.current);
@@ -1941,6 +2000,15 @@ const AppleCommandCenter = () => {
 	                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
 	                          <div className="settings-text-muted" style={{ marginTop: 0 }}>
 	                            {t('settings.signedInAs', 'Signed in as')}: {user.email || user.id}
+	                          </div>
+	                          <div className="settings-text-muted" style={{ marginTop: 0 }}>
+	                            {cloudSyncStatus.state === 'saving'
+	                              ? 'Cloud: saving…'
+	                              : cloudSyncStatus.state === 'error'
+	                                ? `Cloud: ${cloudSyncStatus.lastError || 'Save failed.'}`
+	                                : cloudSyncStatus.lastSavedAt
+	                                  ? `Cloud: last saved ${new Date(cloudSyncStatus.lastSavedAt).toLocaleTimeString(i18n.language || 'en', { hour: '2-digit', minute: '2-digit' })}`
+	                                  : 'Cloud: connected'}
 	                          </div>
 	                          <button
 	                            className="status-option pending settings-btn-secondary"
