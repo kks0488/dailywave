@@ -1,0 +1,4 @@
+DailyWave.xcodeproj/
+*.xcworkspace/
+DerivedData/
+.build/

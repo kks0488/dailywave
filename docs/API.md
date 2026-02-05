@@ -104,8 +104,30 @@ iCalendar (`.ics`) 형식의 캘린더 피드를 반환합니다.
 
 ## AI (Gemini Proxy)
 
+### GET /api/ai/status
+프론트에서 AI 사용 가능 여부를 판단하기 위한 상태 엔드포인트입니다.
+
+**Response**
+```json
+{
+  "ai_proxy_reachable": true,
+  "gemini_configured": true,
+  "memu_reachable": false,
+  "require_supabase_auth_for_ai": true,
+  "rate_limits": { "per_minute": 30, "per_hour": 300 }
+}
+```
+
 ### POST /api/ai/ask
 서버 사이드 Gemini AI 프록시. memU 컨텍스트가 자동 주입됩니다.
+
+> 비용/악용 방지를 위해 서버 환경변수 `REQUIRE_SUPABASE_AUTH_FOR_AI=1` 인 경우,
+> 이 엔드포인트는 **Supabase 로그인 토큰**이 필요합니다.
+
+**Headers (optional / recommended)**
+```
+Authorization: Bearer <supabase access token>
+```
 
 **Request Body**
 ```json
@@ -132,6 +154,10 @@ iCalendar (`.ics`) 형식의 캘린더 피드를 반환합니다.
 ```json
 { "text": "Based on your energy level..." }
 ```
+
+**Rate limit**
+- 요청이 많으면 `429` 를 반환합니다.
+- `Retry-After` 헤더(초)가 포함됩니다.
 
 **동작 흐름**:
 1. `user_id` 제공 시 memU에서 사용자 과거 패턴 조회
@@ -174,6 +200,25 @@ iCalendar (`.ics`) 형식의 캘린더 피드를 반환합니다.
 
 ---
 
+## Account
+
+### DELETE /api/auth/account
+AI 기능을 위해 생성된 **Supabase 계정**을 삭제합니다 (App Store 정책 대응).
+
+**Headers**
+```
+Authorization: Bearer <supabase access token>
+```
+
+**Response**
+- `204 No Content` (성공)
+
+**Server requirements**
+- `SUPABASE_PROJECT_URL` (또는 `SUPABASE_URL`)
+- `SUPABASE_SERVICE_ROLE_KEY` (서버 전용, 절대 클라이언트에 노출 금지)
+
+---
+
 ## Error Responses
 
 모든 에러는 다음 형식을 따릅니다:
@@ -199,3 +244,8 @@ iCalendar (`.ics`) 형식의 캘린더 피드를 반환합니다.
 | `GEMINI_API_KEY` | AI 사용 시 | Google Gemini API 키 |
 | `API_SECRET_KEY` | No | API 인증 키 (미설정 시 인증 비활성화) |
 | `MEMU_URL` | No | memU 서버 URL (기본: `http://localhost:8100`) |
+| `REQUIRE_SUPABASE_AUTH_FOR_AI` | No | `1`이면 `/api/ai/ask`에 Supabase 토큰 필요 |
+| `SUPABASE_PROJECT_URL` | No | Supabase 프로젝트 URL (JWKS/user endpoint 검증에 사용) |
+| `SUPABASE_ANON_KEY` | No | Supabase anon key (server-side token verification fallback) |
+| `SUPABASE_JWT_SECRET` | No | HS256 JWT 검증용 secret |
+| `SUPABASE_SERVICE_ROLE_KEY` | 계정 삭제 시 | Supabase Admin API용 service role key |

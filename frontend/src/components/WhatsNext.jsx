@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, Play, Pause, RotateCcw, ChevronRight, Zap, BatteryLow, BatteryMedium, Send, MessageCircle, Sun, Trophy, ListTodo } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getWhatsNext, hasApiKey, parseAICommand, getDailySummary, getQuickActions, parseChaosDump } from '../lib/gemini';
+import { getWhatsNext, hasApiKey, getAiProxyStatus, parseAICommand, getDailySummary, getQuickActions, parseChaosDump } from '../lib/gemini';
 import { useToastStore } from '../store/useToastStore';
 import { logger } from '../lib/logger';
+import { useAuthStore } from '../store/useAuthStore';
+import { memoryTracker } from '../lib/memoryTracker';
 import './WhatsNext.css';
 
 const getStoredSimpleMode = () => {
@@ -76,6 +78,7 @@ const WhatsNext = ({
   userId,
   onRecommendationUsed,
   onOpenSettings,
+  onOpenAuth,
   onAddRoutine,
   onAddStep,
   onAddWorkflow,
@@ -85,7 +88,20 @@ const WhatsNext = ({
 }) => {
   const { t } = useTranslation();
   const toast = useToastStore(state => state.addToast);
-  const aiEnabled = hasApiKey();
+  const session = useAuthStore((s) => s.session);
+  const isGuest = useAuthStore((s) => s.isGuest);
+  const [aiProxyStatus, setAiProxyStatus] = useState(() => ({
+    ai_proxy_reachable: false,
+    gemini_configured: false,
+    memu_reachable: false,
+    require_supabase_auth_for_ai: false,
+    rate_limits: { per_minute: 0, per_hour: 0 },
+  }));
+  const hasLocalKey = hasApiKey();
+  const canUseHostedAi =
+    !!aiProxyStatus?.gemini_configured &&
+    (!aiProxyStatus?.require_supabase_auth_for_ai || !!session);
+  const aiEnabled = hasLocalKey || canUseHostedAi;
   const [simpleMode, setSimpleMode] = useState(getStoredSimpleMode);
   
   const [recommendation, setRecommendation] = useState(null);
@@ -105,6 +121,38 @@ const WhatsNext = ({
   const [chaosDumpId, setChaosDumpId] = useState(null);
   const selectedTab = simpleMode ? 'chaos' : activeTab;
   const localNext = getLocalNext({ pipelines, routines, t });
+  const trackedTimerStartKeyRef = useRef(null);
+  const trackedTimerCompleteKeyRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAiProxyStatus()
+      .then((status) => {
+        if (cancelled) return;
+        if (status && typeof status === 'object') setAiProxyStatus(status);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const openAiSetup = () => {
+    const hostedNeedsLogin =
+      !!aiProxyStatus?.gemini_configured &&
+      !!aiProxyStatus?.require_supabase_auth_for_ai &&
+      !session &&
+      !hasLocalKey;
+
+    if (hostedNeedsLogin) {
+      toast(t('auth.subtitle', 'Sign in to sync across devices'), 'info');
+      onOpenAuth?.();
+      return;
+    }
+
+    toast(t('ai.noApiKey', 'Set up your AI key in settings'), 'warning');
+    onOpenSettings?.();
+  };
 
   useEffect(() => {
     if (!simpleMode) return;
@@ -126,11 +174,7 @@ const WhatsNext = ({
   const handleChatSubmit = async (e) => {
     e.preventDefault();
     if (!chatInput.trim() || isLoading) return;
-    if (!hasApiKey()) {
-      toast('warning', t('ai.noApiKey', 'Set up your AI key in settings'));
-      onOpenSettings?.();
-      return;
-    }
+    if (!aiEnabled) return openAiSetup();
     
     setIsLoading(true);
     try {
@@ -142,7 +186,7 @@ const WhatsNext = ({
 
       if (result.action === 'add_routine' && onAddRoutine) {
         onAddRoutine(data.title, data.time || '09:00');
-        toast('success', result.confirmation);
+        toast(result.confirmation, 'success');
         handled = true;
       } else if (result.action === 'add_workflow_step') {
         if (onAddStep) {
@@ -154,9 +198,9 @@ const WhatsNext = ({
         }
 
         if (handled) {
-          toast('success', result.confirmation);
+          toast(result.confirmation, 'success');
         } else {
-          toast('warning', t('ai.commandFailed', 'Could not apply that command.'));
+          toast(t('ai.commandFailed', 'Could not apply that command.'), 'warning');
         }
       } else if (result.action === 'add_workflow') {
         if (onAddWorkflow) {
@@ -168,18 +212,18 @@ const WhatsNext = ({
         }
 
         if (handled) {
-          toast('success', result.confirmation);
+          toast(result.confirmation, 'success');
         } else {
-          toast('warning', t('ai.commandFailed', 'Could not apply that command.'));
+          toast(t('ai.commandFailed', 'Could not apply that command.'), 'warning');
         }
       } else if (result.action === 'unknown') {
-        toast('warning', result.confirmation);
+        toast(result.confirmation, 'warning');
       } else {
-        toast('info', result.confirmation);
+        toast(result.confirmation, 'info');
       }
       setChatInput('');
     } catch (error) {
-      toast('error', `AI Error: ${error.message}`);
+      toast(`AI Error: ${error.message}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -188,7 +232,7 @@ const WhatsNext = ({
   const handleChaosSave = () => {
     const text = chaosText.trim();
     if (!text) {
-      toast('warning', t('chaos.noInput', 'Write something first.'));
+      toast(t('chaos.noInput', 'Write something first.'), 'warning');
       return;
     }
 
@@ -198,7 +242,7 @@ const WhatsNext = ({
         parsed: chaosPreview,
         status: chaosPreview ? 'organized' : 'inbox',
       });
-      toast('success', t('chaos.saved', 'Saved to Chaos Inbox.'));
+      toast(t('chaos.saved', 'Saved to Chaos Inbox.'), 'success');
       setChaosText('');
       setChaosPreview(null);
       setChaosDumpId(null);
@@ -212,27 +256,23 @@ const WhatsNext = ({
         status: chaosPreview ? 'organized' : 'inbox',
       });
       if (!savedId) {
-        toast('warning', t('chaos.saveUnavailable', 'Saving is not available right now.'));
+        toast(t('chaos.saveUnavailable', 'Saving is not available right now.'), 'warning');
         return;
       }
-      toast('success', t('chaos.saved', 'Saved to Chaos Inbox.'));
+      toast(t('chaos.saved', 'Saved to Chaos Inbox.'), 'success');
       setChaosText('');
       setChaosPreview(null);
       setChaosDumpId(null);
       return;
     }
 
-    toast('warning', t('chaos.saveUnavailable', 'Saving is not available right now.'));
+    toast(t('chaos.saveUnavailable', 'Saving is not available right now.'), 'warning');
   };
 
   const handleChaosOrganize = async () => {
     const text = chaosText.trim();
     if (!text || isLoading) return;
-    if (!hasApiKey()) {
-      toast('warning', t('ai.noApiKey', 'Set up your AI key in settings'));
-      onOpenSettings?.();
-      return;
-    }
+    if (!aiEnabled) return openAiSetup();
 
     let dumpId = chaosDumpId;
     if (!dumpId && typeof onChaosDumpSaved === 'function') {
@@ -250,13 +290,19 @@ const WhatsNext = ({
     try {
       const result = await parseChaosDump(text, pipelines, routines, userId);
       setChaosPreview(result);
+      memoryTracker.chaosDumpOrganized?.(userId, {
+        length: text.length,
+        workflows: Array.isArray(result?.workflows) ? result.workflows.length : 0,
+        routines: Array.isArray(result?.routines) ? result.routines.length : 0,
+        notes: Array.isArray(result?.notes) ? result.notes.length : 0,
+      });
 
       const empty =
         !result?.workflows?.length &&
         !result?.routines?.length &&
         !result?.notes?.length;
       if (empty) {
-        toast('info', t('chaos.emptyResult', 'No actionable items found. Saved text will stay in your inbox.'));
+        toast(t('chaos.emptyResult', 'No actionable items found. Saved text will stay in your inbox.'), 'info');
         if (dumpId && typeof onChaosDumpUpdated === 'function') {
           onChaosDumpUpdated(dumpId, { status: 'inbox', parsed: null });
         }
@@ -264,7 +310,7 @@ const WhatsNext = ({
         onChaosDumpUpdated(dumpId, { status: 'organized', parsed: result });
       }
     } catch (error) {
-      toast('error', `AI Error: ${error.message}`);
+      toast(`AI Error: ${error.message}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -279,12 +325,12 @@ const WhatsNext = ({
       (chaosPreview.routines || []).length > 0;
 
     if (!hasTargets) {
-      toast('info', t('chaos.nothingToApply', 'Nothing to apply.'));
+      toast(t('chaos.nothingToApply', 'Nothing to apply.'), 'info');
       return;
     }
 
     if (typeof onChaosDumpApply !== 'function') {
-      toast('warning', t('chaos.applyUnavailable', 'Applying is not available right now.'));
+      toast(t('chaos.applyUnavailable', 'Applying is not available right now.'), 'warning');
       return;
     }
 
@@ -296,11 +342,11 @@ const WhatsNext = ({
     const appliedCount = (workflowsApplied ?? 0) + (routinesApplied ?? 0);
 
     if (workflowsApplied === null || routinesApplied === null) {
-      toast('success', t('chaos.applied', 'Applied to your workflows.'));
+      toast(t('chaos.applied', 'Applied to your workflows.'), 'success');
     } else if (appliedCount > 0) {
-      toast('success', t('chaos.applied', 'Applied to your workflows.'));
+      toast(t('chaos.applied', 'Applied to your workflows.'), 'success');
     } else {
-      toast('info', t('chaos.alreadyExists', 'Looks like those items already exist.'));
+      toast(t('chaos.alreadyExists', 'Looks like those items already exist.'), 'info');
     }
     setChaosText('');
     setChaosPreview(null);
@@ -308,36 +354,33 @@ const WhatsNext = ({
   };
 
   const fetchDailySummary = async () => {
-    if (!hasApiKey()) return;
+    if (!aiEnabled) return openAiSetup();
     setIsLoading(true);
     try {
       const result = await getDailySummary(pipelines, routines, userId);
       setDailySummary(result);
     } catch (error) {
-      toast('error', `AI Error: ${error.message}`);
+      toast(`AI Error: ${error.message}`, 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   const fetchQuickActions = async () => {
-    if (!hasApiKey()) return;
+    if (!aiEnabled) return openAiSetup();
     setIsLoading(true);
     try {
       const result = await getQuickActions(pipelines, routines, energy, userId);
       setQuickActions(result);
     } catch (error) {
-      toast('error', `AI Error: ${error.message}`);
+      toast(`AI Error: ${error.message}`, 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   const fetchRecommendation = async () => {
-    if (!hasApiKey()) {
-      toast('warning', t('ai.noApiKey', 'Set up your AI key in settings to get recommendations'));
-      return;
-    }
+    if (!aiEnabled) return openAiSetup();
 
     setIsLoading(true);
     try {
@@ -350,11 +393,11 @@ const WhatsNext = ({
         setTotalTime(result.estimatedMinutes * 60);
         setTrackedRecommendationKey(null);
       } else {
-        toast('warning', 'AI returned empty response. Try again.');
+        toast('AI returned empty response. Try again.', 'warning');
       }
     } catch (error) {
       console.error('AI recommendation failed:', error);
-      toast('error', `AI Error: ${error.message}`);
+      toast(`AI Error: ${error.message}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -367,7 +410,18 @@ const WhatsNext = ({
       setTimeLeft(prev => {
         if (prev <= 1) {
           setTimerRunning(false);
-          toast('success', t('ai.timeUp', 'Time is up! Great focus session.'));
+          toast(t('ai.timeUp', 'Time is up! Great focus session.'), 'success');
+          const completionKey = recommendation
+            ? `${recommendation.task}|${recommendation.reason}|${recommendation.estimatedMinutes}`
+            : `timer:${Date.now()}`;
+          if (trackedTimerCompleteKeyRef.current !== completionKey) {
+            trackedTimerCompleteKeyRef.current = completionKey;
+            memoryTracker.timerCompleted?.(userId, {
+              task: recommendation?.task || '',
+              totalSeconds: totalTime,
+              source: 'whats_next',
+            });
+          }
           return 0;
         }
         return prev - 1;
@@ -375,7 +429,7 @@ const WhatsNext = ({
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [timerRunning, toast, t]);
+  }, [recommendation, t, timerRunning, toast, totalTime, userId]);
 
   const toggleTimer = () => {
     const nextRunning = !timerRunning;
@@ -388,6 +442,15 @@ const WhatsNext = ({
       if (trackedRecommendationKey !== key) {
         onRecommendationUsed(recommendation);
         setTrackedRecommendationKey(key);
+      }
+      if (trackedTimerStartKeyRef.current !== key) {
+        trackedTimerStartKeyRef.current = key;
+        trackedTimerCompleteKeyRef.current = null;
+        memoryTracker.timerStarted?.(userId, {
+          task: recommendation.task,
+          estimatedMinutes: recommendation.estimatedMinutes,
+          source: 'whats_next',
+        });
       }
     }
     setTimerRunning(nextRunning);
@@ -424,7 +487,10 @@ const WhatsNext = ({
 	                  <button
 	                    key={level}
 	                    className={`energy-btn ${energy === level ? 'active' : ''}`}
-	                    onClick={() => setEnergy(level)}
+	                    onClick={() => {
+                        setEnergy(level);
+                        memoryTracker.energySet?.(userId, { level, source: 'whats_next' });
+                      }}
 	                    disabled={!aiEnabled}
 	                    title={t(`ai.energy.${level}`, level)}
 	                  >
@@ -456,20 +522,26 @@ const WhatsNext = ({
 	            <Sparkles size={16} />
 	            <span className="tab-label">{t('ai.tabRecommend', 'What Now?')}</span>
 	          </button>
-	          <button
-	            className={`ai-tab ${selectedTab === 'quick' ? 'active' : ''}`}
-	            onClick={() => { setActiveTab('quick'); if (!quickActions) fetchQuickActions(); }}
-	          >
-	            <Zap size={16} />
-	            <span className="tab-label">{t('ai.tabQuick', 'Quick Tasks')}</span>
-	          </button>
-	          <button
-	            className={`ai-tab ${selectedTab === 'summary' ? 'active' : ''}`}
-	            onClick={() => { setActiveTab('summary'); if (!dailySummary) fetchDailySummary(); }}
-	          >
-	            <Trophy size={16} />
-	            <span className="tab-label">{t('ai.tabSummary', 'Summary')}</span>
-	          </button>
+		          <button
+		            className={`ai-tab ${selectedTab === 'quick' ? 'active' : ''}`}
+		            onClick={() => {
+                    setActiveTab('quick');
+                    if (aiEnabled && !quickActions) fetchQuickActions();
+                  }}
+		          >
+		            <Zap size={16} />
+		            <span className="tab-label">{t('ai.tabQuick', 'Quick Tasks')}</span>
+		          </button>
+		          <button
+		            className={`ai-tab ${selectedTab === 'summary' ? 'active' : ''}`}
+		            onClick={() => {
+                    setActiveTab('summary');
+                    if (aiEnabled && !dailySummary) fetchDailySummary();
+                  }}
+		          >
+		            <Trophy size={16} />
+		            <span className="tab-label">{t('ai.tabSummary', 'Summary')}</span>
+		          </button>
 	          <button
 	            className={`ai-tab ${selectedTab === 'chaos' ? 'active' : ''}`}
 	            onClick={() => setActiveTab('chaos')}
@@ -486,8 +558,10 @@ const WhatsNext = ({
 	              <div className="ai-setup-inline">
 	                <Sparkles size={20} className="sparkle-icon" />
                 <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
-                <button className="setup-btn" onClick={onOpenSettings}>
-                  {t('ai.setupButton', 'Set Up AI')}
+                <button className="setup-btn" onClick={openAiSetup}>
+                  {aiProxyStatus?.gemini_configured && aiProxyStatus?.require_supabase_auth_for_ai && isGuest && !hasLocalKey
+                    ? t('auth.signIn', 'Sign In')
+                    : t('ai.setupButton', 'Set Up AI')}
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -523,14 +597,16 @@ const WhatsNext = ({
 	      {selectedTab === 'summary' && (
 	        <div className="daily-summary-content">
 	          {!aiEnabled ? (
-	            <div className="ai-setup-inline">
-	              <Sparkles size={20} className="sparkle-icon" />
-              <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
-              <button className="setup-btn" onClick={onOpenSettings}>
-                {t('ai.setupButton', 'Set Up AI')}
-                <ChevronRight size={16} />
-              </button>
-            </div>
+		            <div className="ai-setup-inline">
+		              <Sparkles size={20} className="sparkle-icon" />
+	              <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
+	              <button className="setup-btn" onClick={openAiSetup}>
+	                {aiProxyStatus?.gemini_configured && aiProxyStatus?.require_supabase_auth_for_ai && isGuest && !hasLocalKey
+	                  ? t('auth.signIn', 'Sign In')
+	                  : t('ai.setupButton', 'Set Up AI')}
+	                <ChevronRight size={16} />
+	              </button>
+	            </div>
           ) : isLoading ? (
             <div className="loading-state">
               <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>
@@ -570,14 +646,16 @@ const WhatsNext = ({
       )}
 
 	      {selectedTab === 'recommend' && !aiEnabled ? (
-	        <div className="ai-setup-inline">
-	          <Sparkles size={20} className="sparkle-icon" />
-	          <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
-	          <button className="setup-btn" onClick={onOpenSettings}>
-            {t('ai.setupButton', 'Set Up AI')}
-            <ChevronRight size={16} />
-          </button>
-        </div>
+		        <div className="ai-setup-inline">
+		          <Sparkles size={20} className="sparkle-icon" />
+		          <p>{t('ai.setupDesc', 'Connect AI to get personalized task recommendations')}</p>
+		          <button className="setup-btn" onClick={openAiSetup}>
+	              {aiProxyStatus?.gemini_configured && aiProxyStatus?.require_supabase_auth_for_ai && isGuest && !hasLocalKey
+	                ? t('auth.signIn', 'Sign In')
+	                : t('ai.setupButton', 'Set Up AI')}
+	              <ChevronRight size={16} />
+	            </button>
+	        </div>
 	      ) : selectedTab === 'recommend' && recommendation ? (
 	        <div className="recommendation-content">
           <div className="task-display">
@@ -691,15 +769,17 @@ const WhatsNext = ({
               </button>
             </div>
 
-            {!aiEnabled && (
-              <div className="chaos-locked-hint">
-                <p>{t('chaos.aiHint', 'You can save anytime. Connect AI to auto-organize.')}</p>
-                <button className="setup-btn" onClick={onOpenSettings}>
-                  {t('ai.setupButton', 'Set Up AI')}
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            )}
+	            {!aiEnabled && (
+	              <div className="chaos-locked-hint">
+	                <p>{t('chaos.aiHint', 'You can save anytime. Connect AI to auto-organize.')}</p>
+	                <button className="setup-btn" onClick={openAiSetup}>
+	                  {aiProxyStatus?.gemini_configured && aiProxyStatus?.require_supabase_auth_for_ai && isGuest && !hasLocalKey
+	                    ? t('auth.signIn', 'Sign In')
+	                    : t('ai.setupButton', 'Set Up AI')}
+	                  <ChevronRight size={16} />
+	                </button>
+	              </div>
+	            )}
 
             {chaosPreview && (
               <div className="chaos-preview">

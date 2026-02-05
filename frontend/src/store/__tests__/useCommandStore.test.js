@@ -239,7 +239,14 @@ describe('useCommandStore', () => {
       expect(state.routines).toEqual([{ ...mockData.routines[0], doneDate: null }]);
       expect(state.sopLibrary).toEqual(mockData.sopLibrary);
       expect(state.completionHistory).toEqual(mockData.completionHistory);
-      expect(state.chaosInbox).toEqual(mockData.chaosInbox);
+      expect(state.chaosInbox).toEqual([
+        {
+          ...mockData.chaosInbox[0],
+          mergedCount: 1,
+          appliedAt: null,
+          appliedResult: null,
+        },
+      ]);
     });
   });
 
@@ -282,6 +289,29 @@ describe('useCommandStore', () => {
 
       deleteChaosDump(dumpId);
       expect(useCommandStore.getState().chaosInbox).toHaveLength(0);
+    });
+
+    it('should dedupe identical chaos dumps within window', () => {
+      const { addChaosDump } = useCommandStore.getState();
+
+      const firstId = addChaosDump({ text: 'Need to pay bills, email Sam, workout' });
+      const secondId = addChaosDump({ text: '  Need   to pay bills, email Sam, workout   ' });
+
+      expect(firstId).toBe(secondId);
+      const inbox = useCommandStore.getState().chaosInbox;
+      expect(inbox).toHaveLength(1);
+      expect(inbox[0].mergedCount).toBe(2);
+    });
+
+    it('should not dedupe against applied items', () => {
+      const { addChaosDump, updateChaosDump } = useCommandStore.getState();
+
+      const firstId = addChaosDump({ text: 'Repeatable dump' });
+      updateChaosDump(firstId, { status: 'applied' });
+
+      const secondId = addChaosDump({ text: 'Repeatable dump' });
+      expect(secondId).not.toBe(firstId);
+      expect(useCommandStore.getState().chaosInbox).toHaveLength(2);
     });
   });
 });

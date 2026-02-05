@@ -597,6 +597,29 @@ button.checkbox-circle {
 }
 .acc-icon-btn:active { transform: scale(0.92); }
 
+.with-badge {
+    position: relative;
+}
+
+.acc-icon-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 9999px;
+    background: var(--apple-orange);
+    color: #111827;
+    font-size: 11px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-card-strong);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
 .user-avatar {
     width: 40px; height: 40px; border-radius: 50%;
     background: var(--text-primary); color: var(--bg-card);
@@ -802,6 +825,10 @@ button.checkbox-circle {
 }
 
 .mobile-theme-btn {
+    display: none;
+}
+
+.mobile-chaos-btn {
     display: none;
 }
 
@@ -2145,6 +2172,7 @@ button.checkbox-circle {
     }
 
     .mobile-theme-btn,
+    .mobile-chaos-btn,
     .mobile-victory-btn,
     .mobile-settings-btn {
         display: flex;
@@ -2161,6 +2189,7 @@ button.checkbox-circle {
     }
 
     .mobile-theme-btn:hover,
+    .mobile-chaos-btn:hover,
     .mobile-victory-btn:hover,
     .mobile-settings-btn:hover {
         background: var(--hover-bg);

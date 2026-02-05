@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { getApiKey, setApiKey, hasApiKey } from '../gemini';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { getApiKey, setApiKey, hasApiKey, getAiProxyStatus } from '../gemini';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -127,6 +127,38 @@ describe('gemini.js - Pure utility functions', () => {
       setApiKey(whitespaceKey);
       expect(getApiKey()).toBe(whitespaceKey);
       expect(hasApiKey()).toBe(true);
+    });
+  });
+
+  describe('AI Proxy Status', () => {
+    it('should return unreachable when no baseUrl is provided', async () => {
+      const status = await getAiProxyStatus({ baseUrl: '' });
+      expect(status.ai_proxy_reachable).toBe(false);
+      expect(status.gemini_configured).toBe(false);
+    });
+
+    it('should fetch status from backend when baseUrl is provided', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ai_proxy_reachable: true,
+          gemini_configured: true,
+          memu_reachable: false,
+          require_supabase_auth_for_ai: true,
+          rate_limits: { per_minute: 30, per_hour: 300 },
+        }),
+      });
+
+      try {
+        const status = await getAiProxyStatus({ baseUrl: 'http://example.com', force: true });
+        expect(globalThis.fetch).toHaveBeenCalledWith('http://example.com/api/ai/status', { method: 'GET' });
+        expect(status.ai_proxy_reachable).toBe(true);
+        expect(status.gemini_configured).toBe(true);
+        expect(status.require_supabase_auth_for_ai).toBe(true);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
     });
   });
 });

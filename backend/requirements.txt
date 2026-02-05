@@ -23,6 +23,8 @@ typing_extensions==4.15.0
 tzdata==2025.3
 uvicorn==0.38.0
 websockets==15.0.1
+pyjwt[crypto]==2.10.1
+redis==5.0.8
 
 # Testing
 pytest==8.3.4

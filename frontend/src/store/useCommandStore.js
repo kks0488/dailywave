@@ -10,6 +10,13 @@ const INITIAL_CHAOS_INBOX = [];
 const MAX_COMPLETION_HISTORY_DAYS = 60;
 const MAX_CHAOS_INBOX_ITEMS = 200;
 const MAX_CHAOS_INBOX_DAYS = 30;
+const CHAOS_INBOX_DEDUPE_DAYS = 7;
+
+const normalizeChaosText = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
 
 const getLocalDateKey = (date = new Date()) => {
   const yyyy = String(date.getFullYear());
@@ -68,10 +75,18 @@ const pruneChaosInbox = (items) => {
         updatedAt,
         status: typeof base.status === 'string' ? base.status : 'inbox',
         parsed: typeof base.parsed === 'object' && base.parsed !== null ? base.parsed : null,
+        mergedCount: Number.isFinite(Number(base.mergedCount)) ? Math.max(1, Math.round(Number(base.mergedCount))) : 1,
+        appliedAt: typeof base.appliedAt === 'string' ? base.appliedAt : null,
+        appliedResult:
+          typeof base.appliedResult === 'object' && base.appliedResult !== null ? base.appliedResult : null,
       };
     })
     .filter(Boolean)
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    .sort((a, b) => {
+      const aTime = Date.parse(a.updatedAt || a.createdAt);
+      const bTime = Date.parse(b.updatedAt || b.createdAt);
+      return bTime - aTime;
+    });
 
   const withinWindow = normalized.filter((item) => Date.parse(item.createdAt) >= cutoffTime);
   return withinWindow.slice(0, MAX_CHAOS_INBOX_ITEMS);
@@ -335,30 +350,70 @@ export const useCommandStore = create(
         if (!text) return null;
 
         const now = new Date().toISOString();
-        const id = typeof base.id === 'string' && base.id.trim() ? base.id.trim() : crypto.randomUUID();
+        const requestedId = typeof base.id === 'string' && base.id.trim() ? base.id.trim() : crypto.randomUUID();
 
         const createdAtRaw = typeof base.createdAt === 'string' ? base.createdAt : now;
         const createdAt = Number.isFinite(Date.parse(createdAtRaw)) ? createdAtRaw : now;
-        const updatedAtRaw = typeof base.updatedAt === 'string' ? base.updatedAt : createdAt;
-        const updatedAt = Number.isFinite(Date.parse(updatedAtRaw)) ? updatedAtRaw : createdAt;
 
         const nextDump = {
-          id,
+          id: requestedId,
           text,
           createdAt,
-          updatedAt,
+          updatedAt: now,
           status: typeof base.status === 'string' ? base.status : 'inbox',
           parsed: typeof base.parsed === 'object' && base.parsed !== null ? base.parsed : null,
         };
 
-        set((state) => ({
-          chaosInbox: pruneChaosInbox([
-            nextDump,
-            ...(state.chaosInbox || []).filter((item) => item?.id !== id),
-          ]),
-        }));
+        const normalizedText = normalizeChaosText(text);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - CHAOS_INBOX_DEDUPE_DAYS);
+        const cutoffTime = cutoff.getTime();
 
-        return id;
+        let resolvedId = requestedId;
+
+        set((state) => {
+          const existingList = Array.isArray(state.chaosInbox) ? state.chaosInbox : [];
+          const existing = existingList.find((item) => {
+            if (!item || typeof item !== 'object') return false;
+            if (String(item.status || '').toLowerCase() === 'applied') return false;
+            const existingText = normalizeChaosText(item.text);
+            if (!existingText || existingText !== normalizedText) return false;
+            const createdAtTime = Date.parse(String(item.createdAt || ''));
+            return Number.isFinite(createdAtTime) && createdAtTime >= cutoffTime;
+          });
+
+          if (!existing) {
+            return {
+              chaosInbox: pruneChaosInbox([
+                { ...nextDump, mergedCount: 1, appliedAt: null, appliedResult: null },
+                ...existingList.filter((item) => item?.id !== requestedId),
+              ]),
+            };
+          }
+
+          resolvedId = String(existing.id);
+          const mergedCount = Number.isFinite(Number(existing.mergedCount))
+            ? Math.max(1, Math.round(Number(existing.mergedCount)))
+            : 1;
+          const mergedParsed = existing.parsed || nextDump.parsed || null;
+          const mergedStatus =
+            String(existing.status || '').toLowerCase() === 'inbox' && mergedParsed ? 'organized' : existing.status;
+
+          const merged = {
+            ...existing,
+            text,
+            updatedAt: now,
+            mergedCount: mergedCount + 1,
+            parsed: mergedParsed,
+            status: mergedStatus,
+          };
+
+          return {
+            chaosInbox: pruneChaosInbox([merged, ...existingList.filter((item) => item?.id !== existing.id)]),
+          };
+        });
+
+        return resolvedId;
       },
       updateChaosDump: (id, updates) => set((state) => {
         if (!id) return { chaosInbox: state.chaosInbox || [] };
