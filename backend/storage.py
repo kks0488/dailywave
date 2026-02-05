@@ -1,6 +1,7 @@
 import json
 import os
 import threading
+import logging
 from typing import Dict, Any
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
@@ -13,6 +14,7 @@ DEFAULT_INITIAL_DATA = {
     "completionHistory": [],
     "chaosInbox": [],
 }
+logger = logging.getLogger(__name__)
 
 class StorageManager:
     def __init__(self):
@@ -32,8 +34,11 @@ class StorageManager:
                     json.dump(data, f, indent=2, ensure_ascii=False)
                 os.replace(tmp_file, DATA_FILE)
             return True
-        except Exception as e:
-            print(f"Error saving state: {e}")
+        except OSError:
+            logger.exception("Error saving state to %s", DATA_FILE)
+            return False
+        except Exception:
+            logger.exception("Unexpected error while saving state.")
             return False
 
     def load_state(self) -> Dict[str, Any]:
@@ -43,8 +48,10 @@ class StorageManager:
             try:
                 with open(DATA_FILE, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-            except Exception as e:
-                print(f"Error loading state: {e}")
+            except (OSError, json.JSONDecodeError):
+                logger.exception("Error loading state from %s", DATA_FILE)
+            except Exception:
+                logger.exception("Unexpected error while loading state.")
         
         # If no data or all arrays empty, return empty defaults
         if not data or (

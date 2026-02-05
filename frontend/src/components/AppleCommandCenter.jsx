@@ -5,18 +5,24 @@ import { toast } from '../store/useToastStore';
 import { PipelineSkeleton, RoutineSkeleton } from './Skeleton';
 import { EmptyPipelines } from './EmptyState';
 import AuthModal from './AuthModal';
+import ChaosInboxModal from './ChaosInboxModal';
 const WhatsNext = lazy(() => import('./WhatsNext'));
-import { getApiKey, setApiKey, hasApiKey, enhanceWorkflow, analyzeRoutinePatterns } from '../lib/gemini';
+import { getApiKey, setApiKey, enhanceWorkflow, analyzeRoutinePatterns } from '../lib/gemini';
 import { memoryTracker } from '../lib/memoryTracker';
 import { useAuthStore } from '../store/useAuthStore';
-import { loadFromSupabase, saveToSupabase } from '../lib/supabaseSync';
-import { logger } from '../lib/logger';
 import { normalizeRoutineCoachResult } from '../lib/routineCoach';
+import { useAiAvailability } from '../hooks/useAiAvailability';
+import { usePersistenceSync } from '../hooks/usePersistenceSync';
+import {
+  buildStepsFromTitles,
+  ensureActiveStepForPipeline,
+  getChaosSnippet,
+} from '../lib/commandCenterHelpers';
 import {
     Check, Plus, X, Settings, ChevronRight, ChevronLeft,
     MoreHorizontal, RotateCcw, Box, Briefcase,
     Zap, Link, Archive, Maximize2, Minimize2, Trash2, Palette,
-    Download, Upload, Save, Calendar, Copy, Sun, Moon, Sparkles, Wand2, Trophy
+    Download, Upload, Save, Calendar, Copy, Sun, Moon, Sparkles, Wand2, Trophy, ListTodo
 } from 'lucide-react';
 import './AppleCommandCenter.css';
 
@@ -40,6 +46,10 @@ const AppleCommandCenter = () => {
   const sopLibrary = useCommandStore(s => s.sopLibrary);
   const completionHistory = useCommandStore(s => s.completionHistory);
   const chaosInbox = useCommandStore(s => s.chaosInbox);
+  const chaosActiveCount = useMemo(() => {
+    const list = Array.isArray(chaosInbox) ? chaosInbox : [];
+    return list.filter((item) => String(item?.status || '').toLowerCase() !== 'applied').length;
+  }, [chaosInbox]);
 
   // Actions - stable references, never trigger re-renders
   const {
@@ -53,7 +63,6 @@ const AppleCommandCenter = () => {
     addChaosDump, updateChaosDump, deleteChaosDump, clearChaosInbox,
   } = useMemo(() => useCommandStore.getState(), []);
 
-  const [isLoading, setIsLoading] = useState(true);
   const [editingStep, setEditingStep] = useState(null);
   const [aiApiKey, setAiApiKey] = useState(getApiKey());
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
@@ -61,17 +70,6 @@ const AppleCommandCenter = () => {
   const [routineCoachResult, setRoutineCoachResult] = useState(null);
   const [routineCoachLoading, setRoutineCoachLoading] = useState(false);
   const [routineCoachError, setRoutineCoachError] = useState('');
-  const [cloudSyncStatus, setCloudSyncStatus] = useState(() => ({
-    state: 'idle', // 'idle' | 'saving' | 'loading' | 'error'
-    lastSavedAt: null,
-    lastError: '',
-  }));
-  const lastSupabaseSignatureRef = React.useRef('');
-  const lastSupabaseSavedAtRef = React.useRef(0);
-  const pendingSupabasePayloadRef = React.useRef(null);
-  const pendingSupabaseSignatureRef = React.useRef('');
-  const supabaseTimeoutIdRef = React.useRef(null);
-  const supabaseInFlightRef = React.useRef(false);
   const [anonUserId] = useState(() => {
     const key = 'dailywave_anon_user_id';
     const existing = localStorage.getItem(key);
@@ -82,6 +80,10 @@ const AppleCommandCenter = () => {
   });
 
   const trackingUserId = user && !isGuest ? user.id : anonUserId;
+  const { aiEnabled, hostedNeedsLogin } = useAiAvailability({
+    user,
+    isGuest,
+  });
   const todayKey = useMemo(() => {
     const now = new Date();
     const yyyy = String(now.getFullYear());
@@ -89,6 +91,14 @@ const AppleCommandCenter = () => {
     const dd = String(now.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
   }, []);
+  const { isLoading, cloudSyncStatus, syncFromCloud } = usePersistenceSync({
+    user,
+    isGuest,
+    backendUrl,
+    apiSecretKey,
+    hydrate,
+    t,
+  });
 
   const sessionTrackedRef = React.useRef(new Set());
   useEffect(() => {
@@ -150,61 +160,22 @@ const AppleCommandCenter = () => {
   };
 
   const handleSyncFromCloud = async () => {
-    if (!user || isGuest) {
+    const result = await syncFromCloud();
+    if (result?.requiresAuth) {
       setIsAuthOpen(true);
       return;
     }
-
-    try {
-      setCloudSyncStatus((prev) => ({ ...prev, state: 'loading', lastError: '' }));
-      const res = await loadFromSupabase(user.id, { returnError: true });
-      if (!res?.data) {
-        const message =
-          res?.error?.code === 'not_configured'
-            ? t('auth.notConfigured', 'Cloud sync is not configured. Using local storage.')
-            : res?.error?.message
-              ? `${t('settings.syncFailed', 'Could not load from cloud.')} (${res.error.message})`
-              : t('settings.syncFailed', 'Could not load from cloud.');
-
-        setCloudSyncStatus((prev) => ({
-          ...prev,
-          state: 'error',
-          lastError: message,
-        }));
-        toast.warning(message);
-        return;
-      }
-
-      const current = useCommandStore.getState();
-      hydrate({
-        pipelines: res.data.pipelines,
-        routines: res.data.routines,
-        sopLibrary: current.sopLibrary,
-        completionHistory: current.completionHistory,
-        chaosInbox: current.chaosInbox,
-      });
-      // Prevent "load → immediate save" echo to Supabase autosave
-      lastSupabaseSignatureRef.current = JSON.stringify({
-        pipelines: res.data.pipelines,
-        routines: res.data.routines,
-      });
-      lastSupabaseSavedAtRef.current = Date.now();
-      pendingSupabasePayloadRef.current = null;
-      pendingSupabaseSignatureRef.current = '';
-      clearTimeout(supabaseTimeoutIdRef.current);
-      supabaseInFlightRef.current = false;
-      setCloudSyncStatus((prev) => ({ ...prev, state: 'idle', lastError: '' }));
-      toast.success(t('settings.synced', 'Synced from cloud.'));
-    } catch {
-      const message = t('settings.syncFailed', 'Could not load from cloud.');
-      setCloudSyncStatus((prev) => ({ ...prev, state: 'error', lastError: message }));
-      toast.warning(message);
+    if (result?.ok) {
+      toast.success(result.message || t('settings.synced', 'Synced from cloud.'));
+      return;
     }
+    toast.warning(result?.message || t('settings.syncFailed', 'Could not load from cloud.'));
   };
 
   const runRoutineCoach = async () => {
-    if (!hasApiKey()) {
-      setIsSettingsOpen(true);
+    if (!aiEnabled) {
+      if (hostedNeedsLogin) setIsAuthOpen(true);
+      else setIsSettingsOpen(true);
       return;
     }
 
@@ -225,251 +196,6 @@ const AppleCommandCenter = () => {
       setRoutineCoachLoading(false);
     }
   };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    // 1. Load: Supabase (logged in) → Backend file → localStorage
-    const loadData = async () => {
-      const lastOpenedStorageKey = 'dailywave_last_opened_date';
-      const lastOpenedDate = localStorage.getItem(lastOpenedStorageKey) || '';
-
-      const readLocalAux = () => {
-        const saved = localStorage.getItem('dailywave_state');
-        if (!saved) return { sopLibrary: [], completionHistory: [], chaosInbox: [] };
-        try {
-          const parsed = JSON.parse(saved);
-          return {
-            sopLibrary: Array.isArray(parsed?.sopLibrary) ? parsed.sopLibrary : [],
-            completionHistory: Array.isArray(parsed?.completionHistory) ? parsed.completionHistory : [],
-            chaosInbox: Array.isArray(parsed?.chaosInbox) ? parsed.chaosInbox : [],
-          };
-        } catch {
-          return { sopLibrary: [], completionHistory: [], chaosInbox: [] };
-        }
-      };
-
-      const normalizeRoutines = (rawRoutines) => {
-        const list = Array.isArray(rawRoutines) ? rawRoutines : [];
-        return list.map((routine) => {
-          const base = typeof routine === 'object' && routine !== null ? routine : {};
-          const rawDoneDate = base.doneDate || base.done_date || null;
-          const doneDate = typeof rawDoneDate === 'string' ? rawDoneDate.slice(0, 10) : null;
-
-          if (doneDate) {
-            return { ...base, done: doneDate === todayKey, doneDate };
-          }
-
-          // Legacy: no doneDate → treat as "today only if we already opened today"
-          const done = lastOpenedDate === todayKey ? !!base.done : false;
-          return { ...base, done, doneDate: done ? todayKey : null };
-        });
-      };
-
-      const normalizeState = (rawState, aux) => {
-        const source = rawState && typeof rawState === 'object' ? rawState : {};
-        return {
-          pipelines: Array.isArray(source.pipelines) ? source.pipelines : [],
-          routines: normalizeRoutines(source.routines),
-          sopLibrary: Array.isArray(source.sopLibrary) ? source.sopLibrary : aux.sopLibrary,
-          completionHistory: Array.isArray(source.completionHistory) ? source.completionHistory : aux.completionHistory,
-          chaosInbox: Array.isArray(source.chaosInbox) ? source.chaosInbox : aux.chaosInbox,
-        };
-      };
-
-      const aux = readLocalAux();
-
-      // Try Supabase first for logged-in users
-      if (user && !isGuest) {
-        const sbData = await loadFromSupabase(user.id);
-        if (sbData && (sbData.pipelines.length > 0 || sbData.routines.length > 0)) {
-          hydrate(normalizeState({ ...sbData, sopLibrary: undefined, completionHistory: undefined }, aux));
-          logger.log("Loaded state from Supabase.");
-          // Prevent "load → immediate save" echo to Supabase autosave
-          lastSupabaseSignatureRef.current = JSON.stringify({
-            pipelines: sbData.pipelines,
-            routines: sbData.routines,
-          });
-          lastSupabaseSavedAtRef.current = Date.now();
-          pendingSupabasePayloadRef.current = null;
-          pendingSupabaseSignatureRef.current = '';
-          clearTimeout(supabaseTimeoutIdRef.current);
-          supabaseInFlightRef.current = false;
-          localStorage.setItem(lastOpenedStorageKey, todayKey);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Fallback: Backend file (local dev)
-      if (backendUrl) {
-        try {
-          const res = await fetch(`${backendUrl}/api/persistence/load`, {
-            headers: {
-              ...(apiSecretKey && { 'X-API-Key': apiSecretKey }),
-            },
-          });
-          const data = await res.json();
-          if (data.status === 'loaded' && data.data) {
-            hydrate(normalizeState(data.data, aux));
-            logger.log("Loaded state from backend file.");
-            localStorage.setItem(lastOpenedStorageKey, todayKey);
-            setIsLoading(false);
-            return;
-          }
-        } catch {
-          logger.log("Backend not available, using localStorage");
-        }
-      }
-
-      // Fallback: localStorage
-      const saved = localStorage.getItem('dailywave_state');
-      if (saved) {
-        try {
-          hydrate(normalizeState(JSON.parse(saved), aux));
-        } catch (e) {
-          console.error('Failed to parse local storage state', e);
-          localStorage.removeItem('dailywave_state');
-        }
-      }
-      localStorage.setItem(lastOpenedStorageKey, todayKey);
-      setIsLoading(false);
-    };
-
-    loadData().catch(() => setIsLoading(false));
-
-    // 2. Auto-Save Subscription
-    let timeoutId;
-
-    const flushSupabase = async () => {
-      if (!user || isGuest) return;
-      if (supabaseInFlightRef.current) return;
-      if (!pendingSupabasePayloadRef.current) return;
-
-      const payload = pendingSupabasePayloadRef.current;
-      const signature = pendingSupabaseSignatureRef.current;
-
-      supabaseInFlightRef.current = true;
-      setCloudSyncStatus((prev) => ({ ...prev, state: 'saving', lastError: '' }));
-
-      let ok = false;
-      try {
-        ok = await saveToSupabase(user.id, payload);
-      } catch (err) {
-        console.error('Supabase autosave error:', err);
-      }
-
-      supabaseInFlightRef.current = false;
-      if (cancelled) return;
-
-      if (ok) {
-        const now = Date.now();
-        lastSupabaseSavedAtRef.current = now;
-        lastSupabaseSignatureRef.current = signature;
-        setCloudSyncStatus({ state: 'idle', lastSavedAt: now, lastError: '' });
-
-        // Clear pending only if nothing newer was queued while saving.
-        if (pendingSupabaseSignatureRef.current === signature) {
-          pendingSupabasePayloadRef.current = null;
-          pendingSupabaseSignatureRef.current = '';
-        }
-
-        // If changes piled up during save, schedule the next one.
-        if (pendingSupabasePayloadRef.current && pendingSupabaseSignatureRef.current) {
-          scheduleSupabaseSave(
-            pendingSupabasePayloadRef.current,
-            pendingSupabaseSignatureRef.current
-          );
-        }
-
-        return;
-      }
-
-      // Failure: keep pending payload for retry, avoid tight loops.
-      lastSupabaseSavedAtRef.current = Date.now();
-      setCloudSyncStatus((prev) => ({
-        ...prev,
-        state: 'error',
-        lastError: 'Cloud save failed. Retrying…',
-      }));
-
-      clearTimeout(supabaseTimeoutIdRef.current);
-      supabaseTimeoutIdRef.current = setTimeout(() => {
-        flushSupabase().catch(() => {});
-      }, 15000);
-    };
-
-    const scheduleSupabaseSave = (payload, signature) => {
-      pendingSupabasePayloadRef.current = payload;
-      pendingSupabaseSignatureRef.current = signature;
-
-      const now = Date.now();
-      const minIntervalMs = 5000;
-      const waitMs = Math.max(0, minIntervalMs - (now - lastSupabaseSavedAtRef.current));
-
-      clearTimeout(supabaseTimeoutIdRef.current);
-      if (waitMs === 0) {
-        flushSupabase().catch(() => {});
-        return;
-      }
-      supabaseTimeoutIdRef.current = setTimeout(() => {
-        flushSupabase().catch(() => {});
-      }, waitMs);
-    };
-
-    const save = (state) => {
-        const payload = {
-            pipelines: state.pipelines,
-            routines: state.routines,
-            sopLibrary: state.sopLibrary,
-            completionHistory: state.completionHistory,
-            chaosInbox: state.chaosInbox,
-        };
-        localStorage.setItem('dailywave_state', JSON.stringify(payload));
-
-        // Save to Supabase for logged-in users
-        if (user && !isGuest) {
-          const supabasePayload = {
-            pipelines: state.pipelines,
-            routines: state.routines,
-          };
-          const signature = JSON.stringify(supabasePayload);
-          if (signature !== lastSupabaseSignatureRef.current) {
-            scheduleSupabaseSave(supabasePayload, signature);
-          }
-        } else {
-          clearTimeout(supabaseTimeoutIdRef.current);
-          pendingSupabasePayloadRef.current = null;
-          pendingSupabaseSignatureRef.current = '';
-          supabaseInFlightRef.current = false;
-          setCloudSyncStatus({ state: 'idle', lastSavedAt: null, lastError: '' });
-        }
-
-        if (backendUrl) {
-          fetch(`${backendUrl}/api/persistence/save`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(apiSecretKey && { 'X-API-Key': apiSecretKey }),
-              },
-              body: JSON.stringify(payload)
-          }).catch(() => {});
-        }
-    };
-
-    const unsubscribe = useCommandStore.subscribe((state) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => save(state), 1000); // 1s Debounce
-    });
-
-    return () => {
-        cancelled = true;
-        unsubscribe();
-        clearTimeout(timeoutId);
-        clearTimeout(supabaseTimeoutIdRef.current);
-    };
-  }, [apiSecretKey, backendUrl, hydrate, todayKey, user, isGuest]);
-
 
   // --- DELETE CONFIRMATION STATE ---
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: 'pipeline'|'step'|'routine', id, parentId, message }
@@ -528,48 +254,25 @@ const AppleCommandCenter = () => {
   // Context Menu State
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, type: null, targetId: null, parentId: null });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isChaosInboxOpen, setIsChaosInboxOpen] = useState(false);
 
   const [aiEnhanceModal, setAiEnhanceModal] = useState({ open: false, pipelineId: null, loading: false, result: null });
-
-  const normalizeAiSteps = (steps) => {
-    const rawSteps = Array.isArray(steps) ? steps : typeof steps === 'string' ? [steps] : [];
-    return rawSteps.map((step) => (typeof step === 'string' ? step.trim() : '')).filter(Boolean);
-  };
-
-  const buildStepsFromTitles = (titles) => {
-    const normalized = normalizeAiSteps(titles);
-    if (normalized.length === 0) return [];
-    const baseId = Date.now();
-    return normalized.map((title, index) => ({
-      id: `${baseId}-${index + 1}`,
-      title,
-      status: index === 0 ? 'active' : 'locked'
-    }));
-  };
-
   const ensureActiveStep = (pipelineId) => {
-    const pipeline = pipelines.find(p => p.id === pipelineId);
-    if (!pipeline || !pipeline.steps?.length) return;
-    if (pipeline.steps.some(step => step.status === 'active')) return;
-
-    let activated = false;
-    const nextSteps = pipeline.steps.map((step) => {
-      if (activated || step.status === 'done') return step;
-      activated = true;
-      return { ...step, status: 'active' };
-    });
-
-    if (activated) {
-      reorderSteps(pipelineId, nextSteps);
-    }
+    ensureActiveStepForPipeline({ pipelineId, pipelines, reorderSteps });
   };
 
   const handleAiEnhance = async (pipelineId) => {
     const pipeline = pipelines.find(p => p.id === pipelineId);
     if (!pipeline) return;
     
-    if (!hasApiKey()) {
-      toast.warning(t('ai.noApiKey', 'Set up your AI key in settings first'));
+    if (!aiEnabled) {
+      if (hostedNeedsLogin) {
+        toast.info(t('auth.subtitle', 'Sign in to sync across devices'));
+        setIsAuthOpen(true);
+      } else {
+        toast.warning(t('ai.noApiKey', 'Set up your AI key in settings first'));
+        setIsSettingsOpen(true);
+      }
       return;
     }
 
@@ -871,12 +574,6 @@ const AppleCommandCenter = () => {
       return true;
   };
 
-  const getChaosSnippet = (text) => {
-    const value = typeof text === 'string' ? text.trim() : '';
-    if (!value) return '';
-    return value.length > 140 ? `${value.slice(0, 140)}…` : value;
-  };
-
   const handleChaosDumpSaved = ({ text, parsed = null, status, id } = {}) => {
     const input = typeof text === 'string' ? text.trim() : '';
     if (!input) return null;
@@ -915,6 +612,11 @@ const AppleCommandCenter = () => {
     return true;
   };
 
+  const openChaosInbox = (source = 'header') => {
+    memoryTracker.chaosInboxOpened?.(trackingUserId, { source });
+    setIsChaosInboxOpen(true);
+  };
+
   const applyChaosParsed = (parsed) => {
     const source = typeof parsed === 'object' && parsed !== null ? parsed : {};
     const workflows = Array.isArray(source.workflows) ? source.workflows : [];
@@ -923,6 +625,9 @@ const AppleCommandCenter = () => {
 
     let workflowsApplied = 0;
     let routinesApplied = 0;
+    let skippedWorkflows = 0;
+    let skippedRoutines = 0;
+    const createdPipelineIds = [];
 
     const existingWorkflowTitles = new Set(
       pipelines
@@ -930,22 +635,36 @@ const AppleCommandCenter = () => {
         .filter(Boolean)
     );
 
-    for (const wf of workflows) {
+    for (let i = 0; i < workflows.length; i++) {
+      const wf = workflows[i];
       const title = typeof wf?.title === 'string' ? wf.title.trim() : '';
       if (!title) continue;
       const key = title.toLowerCase();
-      if (existingWorkflowTitles.has(key)) continue;
-
-      const ok = handleAiAddWorkflow({
-        title,
-        subtitle: typeof wf?.subtitle === 'string' ? wf.subtitle : '',
-        steps: Array.isArray(wf?.steps) ? wf.steps : [],
-      });
-
-      if (ok) {
-        workflowsApplied += 1;
-        existingWorkflowTitles.add(key);
+      if (existingWorkflowTitles.has(key)) {
+        skippedWorkflows += 1;
+        continue;
       }
+
+      const workflowSubtitle = typeof wf?.subtitle === 'string' ? wf.subtitle : '';
+      const stepList = buildStepsFromTitles(Array.isArray(wf?.steps) ? wf.steps : []);
+      const finalSteps = stepList.length ? stepList : buildStepsFromTitles(['Start', 'Finish']);
+      const finalColor = ALL_COLORS[(pipelines.length + createdPipelineIds.length) % ALL_COLORS.length];
+
+      const pipelineId = addPipeline(title, workflowSubtitle, finalColor, getIconType(title), { steps: finalSteps });
+      createdPipelineIds.push(pipelineId);
+      workflowsApplied += 1;
+      existingWorkflowTitles.add(key);
+
+      memoryTracker.pipelineCreated(trackingUserId, title);
+      addHistoryEvent({
+        type: 'pipeline_created',
+        userId: trackingUserId,
+        pipelineId,
+        title,
+        subtitle: workflowSubtitle,
+        date: todayKey,
+        source: 'chaos',
+      });
     }
 
     const existingRoutineKeys = new Set(
@@ -964,7 +683,10 @@ const AppleCommandCenter = () => {
 
       const time = typeof r?.time === 'string' ? r.time.trim().slice(0, 5) : '09:00';
       const key = `${title.toLowerCase()}|${time}`;
-      if (existingRoutineKeys.has(key)) continue;
+      if (existingRoutineKeys.has(key)) {
+        skippedRoutines += 1;
+        continue;
+      }
 
       const hour = parseInt(time.split(':')[0], 10);
       const type = hour >= 12 ? 'afternoon' : 'morning';
@@ -997,7 +719,14 @@ const AppleCommandCenter = () => {
       date: todayKey,
     });
 
-    return { workflowsApplied, routinesApplied, notesCount: notes.length };
+    return {
+      workflowsApplied,
+      routinesApplied,
+      skippedWorkflows,
+      skippedRoutines,
+      notesCount: notes.length,
+      createdPipelineIds,
+    };
   };
 
   const handleChaosDumpApply = ({ dumpId, text, parsed } = {}) => {
@@ -1568,6 +1297,12 @@ const AppleCommandCenter = () => {
                    <button className="mobile-theme-btn" onClick={toggleTheme} title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')} aria-label={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}>
                        {theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
                    </button>
+                   <button className="mobile-chaos-btn with-badge" onClick={() => openChaosInbox('header_mobile')} title={t('chaos.title', 'Chaos Inbox')} aria-label={t('chaos.title', 'Chaos Inbox')}>
+                       <ListTodo size={18}/>
+                       {chaosActiveCount > 0 && (
+                         <span className="acc-icon-badge">{Math.min(99, chaosActiveCount)}</span>
+                       )}
+                   </button>
                    <button className="mobile-victory-btn" onClick={() => setIsVictoryOpen(true)} title={t('victory.title', 'Victory Wall')} aria-label={t('victory.title', 'Victory Wall')}>
                        <Trophy size={18}/>
                    </button>
@@ -1592,6 +1327,12 @@ const AppleCommandCenter = () => {
                   </button>
                   <button className="acc-icon-btn" onClick={toggleTheme} title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}>
                       {theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
+                  </button>
+                  <button className="acc-icon-btn with-badge" onClick={() => openChaosInbox('header')} title={t('chaos.title', 'Chaos Inbox')} aria-label={t('chaos.title', 'Chaos Inbox')}>
+                    <ListTodo size={18}/>
+                    {chaosActiveCount > 0 && (
+                      <span className="acc-icon-badge">{Math.min(99, chaosActiveCount)}</span>
+                    )}
                   </button>
                   <button className="acc-icon-btn" onClick={() => setIsVictoryOpen(true)} title={t('victory.title', 'Victory Wall')} aria-label={t('victory.title', 'Victory Wall')}>
                     <Trophy size={18}/>
@@ -1622,6 +1363,7 @@ const AppleCommandCenter = () => {
                         });
                       }}
                       onOpenSettings={() => setIsSettingsOpen(true)}
+                      onOpenAuth={() => setIsAuthOpen(true)}
                       onAddRoutine={(title, time) => {
                           const hour = parseInt(time.split(':')[0], 10);
                           const type = hour >= 12 ? 'afternoon' : 'morning';
@@ -1903,19 +1645,23 @@ const AppleCommandCenter = () => {
 	                           aria-label={t('victory.coachCta', 'Add AI insights')}
 	                         >
 	                           <Sparkles size={14} />
-	                           {routineCoachLoading
-	                             ? t('victory.coachLoading', 'Analyzing...')
-	                             : hasApiKey()
-	                               ? t('victory.coachCta', 'Add AI insights')
-	                               : t('victory.coachConnect', 'Connect AI')}
-	                         </button>
-	                     </div>
+		                           {routineCoachLoading
+		                             ? t('victory.coachLoading', 'Analyzing...')
+		                             : aiEnabled
+		                               ? t('victory.coachCta', 'Add AI insights')
+		                               : hostedNeedsLogin
+		                                 ? t('auth.signIn', 'Sign In')
+		                                 : t('victory.coachConnect', 'Connect AI')}
+		                         </button>
+		                     </div>
 
-	                     {!hasApiKey() && (
-	                       <div className="victory-coach-hint">
-	                         {t('victory.coachHint', 'Connect AI to get routine pattern insights. Local insights still work.')}
-	                       </div>
-	                     )}
+		                     {!aiEnabled && (
+		                       <div className="victory-coach-hint">
+		                         {hostedNeedsLogin
+		                           ? t('auth.subtitle', 'Sign in to sync across devices')
+		                           : t('victory.coachHint', 'Connect AI to get routine pattern insights. Local insights still work.')}
+		                       </div>
+		                     )}
 
 	                     {!!routineCoachError && (
 	                       <div className="victory-coach-error">{routineCoachError}</div>
@@ -2190,17 +1936,28 @@ const AppleCommandCenter = () => {
                                  <div className="chaos-inbox-count">
                                      {t('chaos.count', 'Items')}: {chaosInbox.length}
                                  </div>
-                                 <button
-                                     className="status-option locked settings-btn-danger"
-                                     onClick={() => {
-                                       if (confirm(t('chaos.clearConfirm', 'Clear all chaos inbox items?'))) {
-                                         clearChaosInbox();
-                                         toast.success(t('chaos.cleared', 'Chaos inbox cleared.'));
-                                       }
-                                     }}
-                                 >
-                                     <RotateCcw size={16}/> {t('chaos.clear', 'Clear')}
-                                 </button>
+                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                     <button
+                                       className="status-option pending settings-btn-secondary"
+                                       onClick={() => {
+                                         setIsSettingsOpen(false);
+                                         openChaosInbox('settings');
+                                       }}
+                                     >
+                                       <ListTodo size={16}/> {t('chaos.open', 'Open')}
+                                     </button>
+                                     <button
+                                         className="status-option locked settings-btn-danger"
+                                         onClick={() => {
+                                           if (confirm(t('chaos.clearConfirm', 'Clear all chaos inbox items?'))) {
+                                             clearChaosInbox();
+                                             toast.success(t('chaos.cleared', 'Chaos inbox cleared.'));
+                                           }
+                                         }}
+                                     >
+                                         <RotateCcw size={16}/> {t('chaos.clear', 'Clear')}
+                                     </button>
+                                 </div>
                              </div>
 
                              <div className="chaos-inbox-list">
@@ -2613,6 +2370,23 @@ const AppleCommandCenter = () => {
         </div>
       )}
 
+      <ChaosInboxModal
+        isOpen={isChaosInboxOpen}
+        onClose={() => setIsChaosInboxOpen(false)}
+        chaosInbox={chaosInbox}
+        pipelines={pipelines}
+        routines={routines}
+        trackingUserId={trackingUserId}
+        aiEnabled={aiEnabled}
+        hostedNeedsLogin={hostedNeedsLogin}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        updateChaosDump={updateChaosDump}
+        deleteChaosDump={deleteChaosDump}
+        clearChaosInbox={clearChaosInbox}
+        applyChaosParsed={applyChaosParsed}
+        onFocusPipeline={(pipelineId) => setFocusedPipelineId(pipelineId)}
+      />
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
     </div>

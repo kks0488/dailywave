@@ -15,8 +15,8 @@
 | Security | ✅ Complete | SSRF, API key auth, CORS, atomic writes |
 | Documentation | ✅ Complete | README, API, Architecture, Deployment, Roadmap, Changelog |
 | Docker | ✅ Complete | frontend + backend + memU |
-| Backend Tests | ✅ Complete | pytest 38개 (77% coverage) |
-| Frontend Tests | ✅ Complete | vitest 31개 (store + utils) |
+| Backend Tests | ✅ Complete | pytest 46개 |
+| Frontend Tests | ✅ Complete | vitest 53개 (store + utils + hooks/client) |
 | CI/CD | ✅ Complete | GitHub Actions (backend + frontend) |
 | Logger | ✅ Complete | DEV 환경 전용 logger 유틸리티 |
 | Error Boundary | ✅ Complete | ErrorBoundary.jsx (main.jsx에 적용) |
@@ -27,15 +27,15 @@
 ## Completed Improvements (v1.2.0)
 
 ### 1. Testing ✅
-- **Backend**: pytest 38개 테스트 (executor, storage, auth, calendar_gen, API 통합)
-- **Frontend**: vitest 31개 테스트 (useCommandStore 18개, gemini utils 13개)
-- 실행: `cd backend && python -m pytest tests/ -v`
+- **Backend**: pytest 46개 테스트 (API/auth/AI rate-limit/account delete 포함)
+- **Frontend**: vitest 53개 테스트 (store + gemini/aiClient + persistence hook)
+- 실행: `cd backend && python -m pytest tests/ -q --maxfail=1`
 - 실행: `cd frontend && npx vitest run`
 
 ### 2. CI/CD ✅
 - `.github/workflows/ci.yml` - push/PR 시 자동 테스트 + 빌드
 - Backend: Python 3.11, pytest
-- Frontend: Node 20, vitest + vite build
+- Frontend: Node 20, eslint + vitest + vite build
 
 ### 3. Port Configuration ✅
 - Dev: 3005 (vite.config.js, 주석으로 명확화)
@@ -90,4 +90,4 @@ Flutter 프로젝트 구조만 존재. MASTER_PLAN Phase 8-9에 해당:
 
 ---
 
-*Last Updated: 2026-01-29*
+*Last Updated: 2026-02-05*

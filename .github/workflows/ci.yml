@@ -21,7 +21,7 @@ jobs:
           cache: 'pip'
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
-      - run: python -m pytest tests/ -v --tb=short
+      - run: python -m pytest tests/ -q --maxfail=1 --tb=short
 
   frontend:
     name: Frontend Build & Test
@@ -37,5 +37,6 @@ jobs:
           cache: 'npm'
           cache-directory: frontend
       - run: npm ci
+      - run: npm run lint
       - run: npx vitest run
       - run: npm run build

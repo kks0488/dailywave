@@ -1,7 +1,8 @@
 import os
+import logging
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import Workflow
 from executor import WorkflowExecutor
@@ -10,9 +11,12 @@ from calendar_gen import generate_calendar_ics
 from auth import APIKeyAuthMiddleware
 from ai_proxy import router as ai_router
 from memory_service import memorize_user_action
+from supabase_auth import get_supabase_user_id_from_request
+import supabase_admin
 from typing import Dict, Any
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -23,12 +27,25 @@ async def lifespan(app: FastAPI):
         async with httpx.AsyncClient(timeout=3.0) as client:
             r = await client.get(f"{memu_url}/health")
             if r.status_code == 200:
-                print(f"🧠 memU connected at {memu_url}")
+                logger.info("memU connected at %s", memu_url)
+                app.state.memu_available = True
             else:
-                print(f"⚠️  memU responded with {r.status_code} - AI personalization disabled")
+                logger.warning(
+                    "memU responded with status=%s. AI personalization disabled.",
+                    r.status_code,
+                )
+                app.state.memu_available = False
+    except httpx.HTTPError:
+        logger.warning(
+            "memU not available at %s. AI personalization disabled (app remains functional).",
+            memu_url,
+        )
+        app.state.memu_available = False
     except Exception:
-        print(f"⚠️  memU not available at {memu_url} - AI personalization disabled (app works fine without it)")
-    print("🌊 DailyWave API Started")
+        logger.exception("Unexpected error while checking memU availability.")
+        app.state.memu_available = False
+    app.state.memu_url = memu_url
+    logger.info("DailyWave API started")
     yield
 
 
@@ -96,6 +113,7 @@ async def execute_workflow(workflow: Workflow):
         results = await executor.run(workflow)
         return {"status": "completed", "results": results}
     except Exception as e:
+        logger.exception("Workflow execution failed.")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/memory/track")
@@ -107,8 +125,22 @@ async def track_user_action(data: Dict[str, Any]):
     await memorize_user_action(user_id, action_type, action_data)
     return {"status": "tracked"}
 
+@app.delete("/api/auth/account", status_code=204)
+async def delete_ai_account(request: Request):
+    """
+    Deletes the caller's Supabase account (used for AI gating).
+
+    Requires:
+      Authorization: Bearer <supabase access token>
+
+    Server must be configured with:
+      SUPABASE_PROJECT_URL (or SUPABASE_URL)
+      SUPABASE_SERVICE_ROLE_KEY
+    """
+    user_id = await get_supabase_user_id_from_request(request, required=True)
+    await supabase_admin.delete_user(user_id)
+    return Response(status_code=204)
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
-
-
