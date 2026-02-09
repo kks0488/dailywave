@@ -247,6 +247,7 @@ body::before {
     /* Force viewport height */
     height: 100vh;
     overflow-y: auto;
+    scrollbar-width: none;
     overflow-x: hidden; /* Prevent horizontal overflow */ 
     
     /* Hide Scrollbar */
@@ -793,6 +794,7 @@ button.checkbox-circle {
     display: flex; flex-direction: column;
     gap: 20px;
     overflow-y: auto;
+    scrollbar-width: none;
     overflow-x: hidden;
     padding-bottom: 140px;
 
@@ -987,10 +989,12 @@ button.checkbox-circle {
     max-width: calc(100vw - 32px);
     max-height: calc(100vh - 48px);
     overflow-y: auto;
+    scrollbar-width: none;
     animation: popIn 0.25s cubic-bezier(0.2, 1, 0.4, 1);
     transform-origin: center center;
     display: flex; flex-direction: column; gap: 24px;
 }
+.glass-modal::-webkit-scrollbar { width: 0; background: transparent; }
 
 /* Settings modal specific width */
 .settings-modal {
