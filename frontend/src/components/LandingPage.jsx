@@ -15,26 +15,26 @@ const LandingPage = () => {
         {
             icon: <Layout className="text-white" size={28} />,
             color: 'bg-gradient-blue',
-            title: "Visual Pipelines",
-            desc: "Organize workflows in Kanban-style boards. Drag, drop, and visualize your progress with satisfying physics."
+            title: "Chaos Dump",
+            desc: "Dump everything on your mind. AI organizes the mess into clear, actionable next steps — so you don't have to."
         },
         {
             icon: <RefreshCw className="text-white" size={28} />,
             color: 'bg-gradient-purple',
             title: "Daily Routines",
-            desc: "Smart checklists that adapt to your morning and evening rhythms. Never miss a beat in your daily schedule."
+            desc: "Morning and evening checklists that reset daily. Build consistency without overthinking what comes next."
         },
         {
             icon: <Smartphone className="text-white" size={28} />,
             color: 'bg-gradient-orange',
-            title: "Multi-platform Sync",
-            desc: "Seamlessly switch between Web, iOS, and Android. Your flow stays consistent wherever you are."
+            title: "Works Everywhere",
+            desc: "PWA that feels native on any device. Open it on your phone, tablet, or desktop — your flow follows you."
         },
         {
             icon: <Zap className="text-white" size={28} />,
             color: 'bg-gradient-green',
-            title: "Real-time Action",
-            desc: "Powered by Supabase for instant updates. Collaborate with your team without refresh delays."
+            title: "One Next Step",
+            desc: "No overwhelm, no endless lists. AI picks the single most important thing to do right now, based on your energy."
         }
     ];
 
@@ -95,13 +95,13 @@ const LandingPage = () => {
                 </div>
                 
                 <h1 className="hero-title">
-                    Transform your daily chaos into a <br/>
-                    <span style={{ color: '#0A84FF' }}>flowing rhythm</span>
+                    One clear next step.<br/>
+                    <span style={{ color: '#0A84FF' }}>Then the next.</span>
                 </h1>
-                
+
                 <p className="hero-subtitle">
-                    The workflow management tool designed for creative minds. 
-                    Structure your habits, visualize your goals, and find your daily flow state.
+                    ADHD-friendly productivity that actually works.
+                    Dump your chaos, get one actionable step, repeat. No overwhelm, just flow.
                 </p>
                 
                 <div className="hero-cta-group">

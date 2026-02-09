@@ -897,7 +897,7 @@
 
 @media (max-width: 768px) {
   .whats-next-card {
-    padding: 20px;
+    padding: 0;
   }
 
   .whats-next-header {
@@ -999,7 +999,7 @@
 
 @media (max-width: 480px) {
   .whats-next-card {
-    padding: 16px;
+    padding: 0;
   }
 
   .task-name {

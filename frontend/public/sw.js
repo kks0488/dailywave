@@ -1,9 +1,9 @@
-const CACHE_NAME = 'dailywave-v1';
+const CACHE_NAME = 'dailywave-v2';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_ASSETS = [
   '/',
-  '/favicon.svg',
+  '/favicon.png',
   '/manifest.json',
 ];
 

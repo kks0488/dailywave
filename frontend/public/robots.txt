@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://dailywave.vercel.app/sitemap.xml
