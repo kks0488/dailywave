@@ -1327,6 +1327,20 @@ button.checkbox-circle {
 }
 
 /* Mobile: Show back button, hide close button for cleaner HIG look */
+
+/* Mobile font scale — slightly larger for readability */
+@media (max-width: 768px) {
+  :root {
+    --font-xs: 11px;
+    --font-sm: 13px;
+    --font-base: 15px;
+    --font-md: 17px;
+    --font-lg: 19px;
+    --font-xl: 22px;
+    --font-2xl: 26px;
+  }
+}
+
 @media (max-width: 768px) {
     .modal-header {
         justify-content: center; /* Center the title */
