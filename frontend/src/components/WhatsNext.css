@@ -35,14 +35,14 @@
 }
 
 .whats-next-card.setup-prompt h3 {
-  font-size: var(--font-lg);
+  font-size: 18px;
   font-weight: 700;
   margin-bottom: 8px;
   color: var(--text-primary);
 }
 
 .whats-next-card.setup-prompt p {
-  font-size: var(--font-sm);
+  font-size: 13px;
   color: var(--text-secondary);
   margin-bottom: 20px;
 }
@@ -61,7 +61,7 @@
 }
 
 .ai-setup-inline p {
-  font-size: var(--font-sm);
+  font-size: 13px;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -73,7 +73,7 @@
   padding: 12px 24px;
   border-radius: 12px;
   font-weight: 700;
-  font-size: var(--font-sm);
+  font-size: 13px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -106,7 +106,7 @@
   color: var(--text-primary);
   padding: 6px 10px;
   border-radius: 12px;
-  font-size: var(--font-sm);
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -135,7 +135,7 @@
 }
 
 .header-title h3 {
-  font-size: var(--font-md);
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
@@ -181,7 +181,7 @@
 
 .task-name {
   display: block;
-  font-size: var(--font-xl);
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 8px;
@@ -189,7 +189,7 @@
 
 .task-reason {
   display: block;
-  font-size: var(--font-sm);
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
@@ -243,7 +243,7 @@
 }
 
 .timer-display .label {
-  font-size: var(--font-xs);
+  font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -285,7 +285,7 @@
 }
 
 .encouragement {
-  font-size: var(--font-base);
+  font-size: 14px;
   color: #34c759;
   font-weight: 600;
   margin-bottom: 16px;
@@ -300,7 +300,7 @@
   color: var(--text-secondary);
   padding: 8px 16px;
   border-radius: 20px;
-  font-size: var(--font-sm);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -332,7 +332,7 @@
   padding: 16px 32px;
   border-radius: 16px;
   font-weight: 600;
-  font-size: var(--font-base);
+  font-size: 15px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -366,7 +366,7 @@
 }
 
 .hint {
-  font-size: var(--font-sm);
+  font-size: 12px;
   color: var(--text-muted);
   margin-top: 12px;
 }
@@ -395,7 +395,7 @@
 }
 
 .simple-next-title {
-  font-size: var(--font-sm);
+  font-size: 12px;
   font-weight: 900;
   color: var(--text-primary);
   letter-spacing: 0.06em;
@@ -403,14 +403,14 @@
 }
 
 .simple-next-task {
-  font-size: var(--font-md);
+  font-size: 16px;
   font-weight: 800;
   color: var(--text-primary);
   line-height: 1.25;
 }
 
 .simple-next-reason {
-  font-size: var(--font-sm);
+  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.35;
 }
@@ -427,7 +427,7 @@
   background: rgba(59, 130, 246, 0.1);
   color: var(--dw-primary);
   font-weight: 800;
-  font-size: var(--font-sm);
+  font-size: 12px;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
@@ -452,7 +452,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 12px 14px;
-  font-size: var(--font-sm);
+  font-size: 13px;
   color: var(--text-primary);
   outline: none;
   transition: box-shadow 0.2s, border-color 0.2s;
@@ -482,7 +482,7 @@
   flex: 1;
   border-radius: 14px;
   padding: 12px 14px;
-  font-size: var(--font-sm);
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   border: 1px solid var(--border-light);
@@ -533,7 +533,7 @@
 
 .chaos-locked-hint p {
   margin: 0;
-  font-size: var(--font-sm);
+  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.35;
 }
@@ -556,13 +556,13 @@
 }
 
 .chaos-preview-title {
-  font-size: var(--font-sm);
+  font-size: 13px;
   font-weight: 800;
   color: var(--text-primary);
 }
 
 .chaos-preview-section-title {
-  font-size: var(--font-sm);
+  font-size: 12px;
   font-weight: 800;
   color: var(--text-secondary);
   margin-bottom: 8px;
@@ -585,13 +585,13 @@
 
 .chaos-preview-item-title {
   font-weight: 800;
-  font-size: var(--font-base);
+  font-size: 14px;
   color: var(--text-primary);
 }
 
 .chaos-preview-item-subtitle {
   margin-top: 4px;
-  font-size: var(--font-sm);
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -604,7 +604,7 @@
 
 .chaos-preview-step,
 .chaos-preview-note {
-  font-size: var(--font-sm);
+  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.35;
 }
@@ -637,7 +637,7 @@
   border: none;
   border-radius: 999px;
   padding: 8px 12px;
-  font-size: var(--font-sm);
+  font-size: 13px;
   color: var(--text-primary);
   outline: none;
   transition: box-shadow 0.2s;
@@ -699,7 +699,7 @@
   border: none;
   padding: 12px 8px;
   border-radius: var(--radius-md);
-  font-size: var(--font-sm);
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
@@ -728,7 +728,7 @@
 }
 
 .ai-tab .tab-label {
-  font-size: var(--font-xs);
+  font-size: 11px;
   line-height: 1.2;
   text-align: center;
   white-space: nowrap;
@@ -797,7 +797,7 @@
 }
 
 .action-emoji {
-  font-size: var(--font-xl);
+  font-size: 20px;
 }
 
 .action-details {
@@ -808,13 +808,13 @@
 }
 
 .action-text {
-  font-size: var(--font-base);
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .action-duration {
-  font-size: var(--font-xs);
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
@@ -829,7 +829,7 @@
 }
 
 .celebration {
-  font-size: var(--font-md);
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 16px;
@@ -861,7 +861,7 @@
 }
 
 .stat-label {
-  font-size: var(--font-xs);
+  font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -884,14 +884,14 @@
 }
 
 .tomorrow-tip span {
-  font-size: var(--font-sm);
+  font-size: 13px;
   color: var(--text-primary);
 }
 
 .refresh-btn.small,
 .ask-ai-btn.small {
   padding: 10px 20px;
-  font-size: var(--font-sm);
+  font-size: 13px;
   min-width: auto;
 }
 
@@ -917,7 +917,7 @@
   }
 
   .task-name {
-    font-size: var(--font-lg);
+    font-size: 18px;
   }
 
   .timer-ring {
@@ -926,7 +926,7 @@
   }
 
   .timer-display .time {
-    font-size: var(--font-2xl);
+    font-size: 24px;
   }
 
   .timer-controls {
@@ -945,7 +945,7 @@
   .refresh-btn.small {
     width: auto;
     padding: 12px 20px;
-    font-size: var(--font-base);
+    font-size: 14px;
     align-self: center;
   }
 
@@ -992,7 +992,7 @@
   }
 
   .ai-tab .tab-label {
-    font-size: var(--font-xs);
+    font-size: 10px;
   }
 
 }
@@ -1003,7 +1003,7 @@
   }
 
   .task-name {
-    font-size: var(--font-md);
+    font-size: 16px;
   }
 
   .energy-btn {
