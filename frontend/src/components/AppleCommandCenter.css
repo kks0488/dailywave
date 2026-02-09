@@ -1328,17 +1328,18 @@ button.checkbox-circle {
 
 /* Mobile: Show back button, hide close button for cleaner HIG look */
 
-/* Mobile font scale — slightly larger for readability */
+/* Mobile font scale — unified variable system */
 @media (max-width: 768px) {
   :root {
     --font-xs: 11px;
     --font-sm: 13px;
-    --font-base: 15px;
-    --font-md: 17px;
-    --font-lg: 19px;
-    --font-xl: 22px;
-    --font-2xl: 26px;
+    --font-base: 14px;
+    --font-md: 16px;
+    --font-lg: 18px;
+    --font-xl: 21px;
+    --font-2xl: 25px;
   }
+
 }
 
 @media (max-width: 768px) {
