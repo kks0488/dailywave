@@ -38,6 +38,4 @@ cat ~/.config/claude-projects/global.env
 - **중복 체크** - memU `/check-similar` 사용
 
 ### 참조 문서
-- 프로젝트 목록: `/home/kkaemo/projects/PROJECTS_OVERVIEW.md`
-- 포트 맵: `/home/kkaemo/projects/ROUTING.md`
 <!-- INFRASTRUCTURE_AUTOGEN_END -->

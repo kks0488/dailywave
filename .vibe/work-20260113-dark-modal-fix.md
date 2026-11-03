@@ -66,5 +66,5 @@ N/A - 간단한 버그 수정
 - dist/assets/index-DfExNK1a.js 278.29 kB
 
 ## 수정된 파일
-1. `/home/kkaemo/projects/dailywave/frontend/src/components/AppleCommandCenter.css`
-2. `/home/kkaemo/projects/dailywave/frontend/src/components/AppleCommandCenter.jsx`
+1. `<project-root>/frontend/src/components/AppleCommandCenter.css`
+2. `<project-root>/frontend/src/components/AppleCommandCenter.jsx`
